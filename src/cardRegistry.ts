@@ -8,6 +8,11 @@ export type CardManifest = {
   semanticDescriptor?: string;
 };
 
+export type CardQueryResult = {
+  manifest: CardManifest;
+  score: number;
+};
+
 // simple deterministic text->vector mapper for demo purposes
 function textToVector(text: string, dim = 16) {
   const v = new Array(dim).fill(0);

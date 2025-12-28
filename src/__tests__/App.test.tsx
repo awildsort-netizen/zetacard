@@ -1,11 +1,11 @@
 import React from 'react'
 import { render, screen, waitFor } from '@testing-library/react'
-import { test, expect, vi, beforeAll, afterEach } from 'vitest'
+import { test, expect, vi, afterEach } from 'vitest'
 import App from '../App'
 
 // Mock Three.js Canvas for testing (not available in jsdom)
 vi.mock('@react-three/fiber', () => ({
-  Canvas: ({ children }: any) => <div data-testid="3d-canvas">{children}</div>,
+  Canvas: ({ children }: { children?: React.ReactNode }) => <div data-testid="3d-canvas">{children}</div>,
   useFrame: vi.fn(),
   useThree: vi.fn(() => ({ camera: {}, scene: {}, gl: {} })),
 }))

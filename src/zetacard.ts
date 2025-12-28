@@ -1,4 +1,4 @@
-import {EPS, cosine} from "./math";
+import {EPS} from "./math";
 
 export type Params = {diffusion:number, sharpen:number, ambient:number};
 
