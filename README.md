@@ -80,32 +80,111 @@ This prototype uses React + Canvas with spectral-dynamical features:
 
 ---
 
-## Card Contract
+## ζ-Card: Card Contract (ζ.card.contract.core)
 
-Any object satisfying this minimal contract can be routed, indexed, visualized, and composed:
+**Purpose:** Define the minimal object grammar required for something to behave as a "card" in Zetacard: routable, indexable, activatable, and introspectable.
+
+### Invariants
+
+1. **Stable Identity**
+   `id` is globally unique and stable across sessions.
+   If the card is active, the URL must be a reversible reflection of `id`.
+
+2. **Separability of Model and View**
+   A card may exist without any React component mounted.
+   Views are projections over card state, not state owners.
+
+3. **Inspectable Semantics**
+   A card can describe:
+   - what it is (metadata)
+   - what it depends on (inputs)
+   - what it emits (outputs)
+   - how it fails (failure modes)
+
+4. **Activation is Explicit**
+   Activation is an operator, not an incidental navigation event.
+
+### Minimal Contract Shape (TypeScript)
 
 ```ts
-interface ZetaCard {
-  id: string                    // Semantic identity (e.g., "ζ.card.spectral.heartbeat")
-  zeta: number[]               // Normalized spectral vector (identity fingerprint)
-  invariants: Invariant[]       // Declared structural properties
-  failureModes: FailureMode[]   // Observable failure states
-  activate(): void              // Entry point for invocation
-}
+export interface ZetaCardContract<State = unknown> {
+  // Identity
+  readonly id: CardID;
+  readonly meta: CardMeta;
 
-interface Invariant {
-  name: string
-  validate(card: ZetaCard): boolean
-}
+  // Dependency graph (optional)
+  readonly io?: CardIO;
 
-interface FailureMode {
-  name: string
-  severity: 'warning' | 'error'
-  detect(card: ZetaCard): boolean
+  // State management
+  getState(): State;
+  setState(next: State): void;
+
+  // Activation operator: "become the active card"
+  // This is the ONLY way a card should become active.
+  activate(ctx?: CardActivationContext): void;
+
+  // Semantic payload (optional but encouraged)
+  // Your spectral fingerprint, energy vector, or other invariant measure.
+  readonly zeta?: number[];
+
+  // Introspection
+  getFailures?(): CardFailure[];
+
+  // View projection (optional)
+  // A card may exist without rendering (headless card / pure operator).
+  View?: React.ComponentType<{ card: ZetaCardContract<State> }>;
 }
 ```
 
-This contract makes the system compositional: new cards can be added without modifying routing, UI, or registry logic.
+### Router Reflection Rule
+
+> **The URL is a reflection of the active card's `id`; navigation is implemented by activating cards.**
+
+This single principle ensures routing stays downstream of semantic state.
+
+### Failure Modes
+
+Cards should check for these states and report them via `getFailures()`:
+
+- **`missing_id`** — card has no stable id
+- **`non_reversible_route`** — router can't encode/decode id losslessly
+- **`view_owns_state`** — view mutates state that can't be reproduced from card model
+- **`activation_side_effect_only`** — activation only changes UI, not runtime state
+- **`flat_spectrum`** — spectral energy is too uniform; no dominant modes detected
+- **`missing_input`** — required input dependency is not available
+- **`disconnected`** — card cannot reach required external service or resource
+
+### Implementation in This Repository
+
+See [src/cardContract.ts](src/cardContract.ts) for the formal interface and validator.
+
+The [Card](src/zetacard.ts) class implements `ZetaCardContract<CardState>` as a reference implementation.
+
+---
+
+## ζ-Card: Omnicard (ζ.card.omni)
+
+**ID:** `ζ.card.omni`  
+**Implementation:** [src/cards/omnicard.ts](src/cards/omnicard.ts)
+
+The zero-dimensional attractor: system overview, semantic index, and invocation interface.
+
+### Invariants
+
+- Always resolvable (no dependencies).
+- Always renderable (no missing inputs).
+- Provides the omnibox query interface.
+
+### Responsibilities
+
+- Surface recent card activations
+- Index and search the card registry
+- Display system health (π-clock phase, spectral heartbeat resonance)
+- Accept and resolve omnibox queries
+
+### Operator
+
+`select(query: string) → CardID | null` — resolve a semantic query to a card identity.
 
 ---
 
@@ -132,3 +211,5 @@ Visual affordances:
 - Emits a red ring when the angular change exceeds `tickEpsilon` (semantic tick).
 
 Failure modes declared in the card are surfaced by the UI (e.g., flat spectrum shows "Flat spectrum").
+
+````

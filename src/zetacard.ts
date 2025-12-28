@@ -1,22 +1,51 @@
 import {EPS, cosine} from "./math";
+import {
+  ZetaCardContract,
+  CardID,
+  CardMeta,
+  CardFailure,
+  CardActivationContext,
+  CardFailureRegistry,
+} from "./cardContract";
 
 export type Params = {diffusion:number, sharpen:number, ambient:number};
 
-export class Card {
+export type CardState = {
+  size: number;
+  surface: Float32Array;
+  params: Params;
+  bandEnergy: number[];
+  zeta: number[];
+};
+
+export class Card implements ZetaCardContract<CardState> {
+  readonly id: CardID;
+  readonly meta: CardMeta;
+
   size:number;
   surface:Float32Array;
   tmp:Float32Array;
   params:Params;
   bandEnergy:number[];
   zeta:number[];
+  private _isActive: boolean = false;
 
-  constructor(size=64){
+  constructor(size=64, cardId?: CardID){
     this.size = size;
     this.surface = new Float32Array(size*size);
     this.tmp = new Float32Array(size*size);
     this.params = {diffusion:0.2,sharpen:0.5,ambient:0.5};
     this.bandEnergy = [0,0,0];
     this.zeta = [0,0,0];
+    
+    // Card contract: identity and metadata
+    this.id = cardId || `ζ.card.spectral.heartbeat`;
+    this.meta = {
+      title: "Spectral Heartbeat",
+      description: "Normalized spectral vector with angular change detection",
+      tags: ["spectral", "deterministic", "validator"],
+    };
+    
     // random init
     for(let i=0;i<this.surface.length;i++) this.surface[i]=Math.random()*0.2;
   }
@@ -102,6 +131,74 @@ export class Card {
   setAttractor(a:boolean){
     if(a){ this.params = {diffusion:0.12,sharpen:0.9,ambient:this.params.ambient}; }
     else { this.params = {diffusion:0.3,sharpen:0.2,ambient:this.params.ambient}; }
+  }
+
+  // ===== ZetaCardContract implementation =====
+
+  /**
+   * Card contract: state snapshot.
+   * Encapsulates all mutable state in a single reproducible structure.
+   */
+  getState(): CardState {
+    return {
+      size: this.size,
+      surface: this.surface.slice(),
+      params: { ...this.params },
+      bandEnergy: [...this.bandEnergy],
+      zeta: [...this.zeta],
+    };
+  }
+
+  /**
+   * Card contract: restore state.
+   * Allows the card to be reset to a known state without mutation from views.
+   */
+  setState(next: CardState): void {
+    this.size = next.size;
+    this.surface = new Float32Array(next.surface);
+    this.tmp = new Float32Array(this.size * this.size);
+    this.params = { ...next.params };
+    this.bandEnergy = [...next.bandEnergy];
+    this.zeta = [...next.zeta];
+  }
+
+  /**
+   * Card contract: activation operator.
+   * This is the ONLY way the card should become active.
+   * Views must not activate cards directly; they must call this method.
+   */
+  activate(ctx?: CardActivationContext): void {
+    this._isActive = true;
+    // The router should reflect this activation into the URL
+    if (ctx?.reason) {
+      console.log(`[${this.id}] activated: ${ctx.reason}`);
+    }
+  }
+
+  /**
+   * Card contract: introspection.
+   * Declare failure modes so the UI can render appropriate warnings.
+   */
+  getFailures?(): CardFailure[] {
+    const failures: CardFailure[] = [];
+
+    // Check for flat spectrum
+    const energy = this.bandEnergy.reduce((a, b) => a + b, 0);
+    const maxBand = Math.max(...this.bandEnergy);
+    if (energy > 0 && maxBand / energy < 1.5) {
+      // bands are too uniform
+      failures.push(CardFailureRegistry.FLAT_SPECTRUM);
+    }
+
+    return failures;
+  }
+
+  /**
+   * Check if card is currently active.
+   * (Useful for internal state tracking; not part of contract but useful for runtime.)
+   */
+  isActive(): boolean {
+    return this._isActive;
   }
 }
 
