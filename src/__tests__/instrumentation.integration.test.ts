@@ -19,26 +19,26 @@ describe('Instrumentation Integration', () => {
       type: 'SEARCH_QUERY',
       query: 'test',
       flowId,
-    } as any);
+    });
     
     eventLog.emit({
       type: 'CARD_SELECTED',
       cardId: 'card-123',
       cardTitle: 'Test Card',
       flowId,
-    } as any);
+    });
     
     eventLog.emit({
       type: 'CARD_OPENED',
       cardId: 'card-123',
-      mode: 'Run' as const,
+      mode: 'Run',
       flowId,
-    } as any);
+    });
     
     eventLog.emit({
       type: 'CARD_CLOSED',
       flowId,
-    } as any);
+    });
     
     // Verify the full sequence
     const flowEvents = eventLog.getEventsByFlowId(flowId);
@@ -53,24 +53,28 @@ describe('Instrumentation Integration', () => {
 
   it('tracks multiple concurrent flows', () => {
     const flow1 = eventLog.startFlow();
-    eventLog.emit({ type: 'SEARCH_QUERY', query: 'flow1', flowId: flow1 } as any);
+    eventLog.emit({ type: 'SEARCH_QUERY', query: 'flow1', flowId: flow1 });
     
     const flow2 = eventLog.startFlow();
-    eventLog.emit({ type: 'SEARCH_QUERY', query: 'flow2', flowId: flow2 } as any);
+    eventLog.emit({ type: 'SEARCH_QUERY', query: 'flow2', flowId: flow2 });
     
     const flow1Events = eventLog.getEventsByFlowId(flow1);
     const flow2Events = eventLog.getEventsByFlowId(flow2);
     
     expect(flow1Events).toHaveLength(1);
     expect(flow2Events).toHaveLength(1);
-    expect((flow1Events[0] as any).query).toBe('flow1');
-    expect((flow2Events[0] as any).query).toBe('flow2');
+    if (flow1Events[0].type === 'SEARCH_QUERY') {
+      expect(flow1Events[0].query).toBe('flow1');
+    }
+    if (flow2Events[0].type === 'SEARCH_QUERY') {
+      expect(flow2Events[0].query).toBe('flow2');
+    }
   });
 
   it('exports event log with all metadata', () => {
     const flowId = eventLog.startFlow();
-    eventLog.emit({ type: 'SEARCH_QUERY', query: 'test', flowId } as any);
-    eventLog.emit({ type: 'CARD_OPENED', cardId: 'c1', mode: 'Run' as const, flowId } as any);
+    eventLog.emit({ type: 'SEARCH_QUERY', query: 'test', flowId });
+    eventLog.emit({ type: 'CARD_OPENED', cardId: 'c1', mode: 'Run', flowId });
     
     const exported = eventLog.export();
     
@@ -83,31 +87,34 @@ describe('Instrumentation Integration', () => {
   it('handles error events without breaking flow', () => {
     const flowId = eventLog.startFlow();
     
-    eventLog.emit({ type: 'SEARCH_QUERY', query: 'test', flowId } as any);
+    eventLog.emit({ type: 'SEARCH_QUERY', query: 'test', flowId });
     eventLog.emit({
       type: 'ERROR',
-      source: 'network' as const,
+      source: 'network',
       message: 'Failed to fetch',
-    } as any);
-    eventLog.emit({ type: 'CARD_OPENED', cardId: 'c1', mode: 'Run' as const, flowId } as any);
+    });
+    eventLog.emit({ type: 'CARD_OPENED', cardId: 'c1', mode: 'Run', flowId });
     
     const allEvents = eventLog.getEvents();
     const errors = eventLog.getErrors();
     
     expect(allEvents).toHaveLength(3);
     expect(errors).toHaveLength(1);
-    expect((errors[0] as any).source).toBe('network');
+    if (errors[0].type === 'ERROR') {
+      expect(errors[0].source).toBe('network');
+    }
   });
 
   it('provides window access for browser testing', () => {
     const flowId = eventLog.startFlow();
-    eventLog.emit({ type: 'SEARCH_QUERY', query: 'test', flowId } as any);
+    eventLog.emit({ type: 'SEARCH_QUERY', query: 'test', flowId });
     
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const windowApi = (global as any).__zetacard__;
     expect(windowApi).toBeTruthy();
     expect(windowApi.version).toBe('1.0.0');
-    expect(windowApi.getEvents).toBeInstanceOf(Function);
-    expect(windowApi.getCurrentIndex).toBeInstanceOf(Function);
+    expect(typeof windowApi.getEvents).toBe('function');
+    expect(typeof windowApi.getCurrentIndex).toBe('function');
     
     const events = windowApi.getEvents();
     expect(events).toHaveLength(1);
