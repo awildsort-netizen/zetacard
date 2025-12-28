@@ -1,0 +1,29 @@
+:root{font-family:system-ui,Segoe UI,Roboto,Arial,sans-serif}
+body,html,#root{height:100%;margin:0}
+.controls{position:fixed;left:8px;top:8px;background:rgba(255,255,255,0.9);padding:8px;border-radius:6px;z-index:10}
+.cardInfo{position:absolute;background:rgba(0,0,0,0.6);color:#fff;padding:4px;border-radius:4px;font-size:12px}
+input[type='range']{vertical-align:middle;margin-left:8px}
+.controls strong{margin-left:6px}
+
+/* Omnibox transitions and docked compact style */
+.omnibox{transition:transform .20s ease,opacity .18s ease;}
+.omnibox--docked{position:fixed;left:12px;top:12px;width:340px;background:#111;color:#fff;padding:8px;border-radius:8px;box-shadow:0 6px 20px rgba(0,0,0,0.45);display:flex;justify-content:space-between;align-items:center;z-index:9999;cursor:pointer}
+.omnibox--docked .omnibox__title{font-weight:600;margin-left:8px}
+.omnibox--docked .omnibox__actions button{margin-left:8px;padding:6px 8px}
+.omnibox:enter{opacity:0}
+
+/* Overlay blur when omnibox is open */
+.omnibox-overlay{position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0);backdrop-filter:blur(0px);transition:backdrop-filter .24s ease,opacity .24s ease;opacity:0}
+.omnibox-overlay.open{background:rgba(0,0,0,0.25);backdrop-filter:blur(6px);opacity:1}
+
+/* Focus styles for accessibility */
+.omnibox input:focus{outline:2px solid #5fb4ff;outline-offset:2px}
+.omnibox button:focus{outline:2px solid #5fb4ff;outline-offset:2px}
+
+/* Docked thumbnail + layout */
+.omnibox--docked{display:flex;align-items:center;gap:12px;padding:8px 12px}
+.omnibox--docked .omnibox__left{display:flex;align-items:center;gap:10px}
+.omnibox__thumbnail{width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex-shrink:0;font-size:14px}
+.omnibox__title{font-weight:600}
+
+

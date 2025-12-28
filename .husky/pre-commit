@@ -1,0 +1,31 @@
+#!/bin/sh
+# Pre-commit hook to prevent CommonJS patterns in ES6 modules
+# This works with both bash and cmd.exe
+
+FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|tsx|js|jsx)$')
+
+if [ -z "$FILES" ]; then
+  exit 0
+fi
+
+echo "Running ESLint on staged files..."
+
+# For bash/Unix-like environments
+if command -v npm &> /dev/null; then
+  npm run lint -- $FILES
+elif command -v npm.cmd &> /dev/null; then
+  # Windows cmd.exe fallback
+  npm.cmd run lint -- %FILES%
+else
+  echo "⚠️  npm not found in PATH"
+  exit 1
+fi
+
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint found errors. Fix them before committing:"
+  echo "  npm run lint:fix"
+  exit 1
+fi
+
+echo "✅ ESLint check passed"
+exit 0

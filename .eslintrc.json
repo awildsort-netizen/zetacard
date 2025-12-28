@@ -1,0 +1,44 @@
+{
+  "env": {
+    "browser": true,
+    "es2021": true
+  },
+  "extends": [
+    "eslint:recommended"
+  ],
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "ecmaFeatures": {
+      "jsx": true
+    }
+  },
+  "rules": {
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "require",
+        "message": "Use ES6 import syntax instead of require(). This is an ES6 module project using Vite."
+      }
+    ],
+    "no-undef": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.tsx", "*.ts"],
+      "parser": "@typescript-eslint/parser",
+      "extends": [
+        "plugin:@typescript-eslint/recommended"
+      ],
+      "rules": {
+        "no-restricted-globals": [
+          "error",
+          {
+            "name": "require",
+            "message": "Use ES6 import syntax instead of require(). This is an ES6 module project using Vite."
+          }
+        ]
+      }
+    }
+  ]
+}
