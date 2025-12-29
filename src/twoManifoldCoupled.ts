@@ -60,33 +60,75 @@ export function laplacian(f: Vec, dx: number): Vec {
 }
 
 // ============================================================================
-// ADM State (one copy per bulk)
+// Dilaton GR State (v2.0: Corrected formulation)
 // ============================================================================
 
-export interface ADMState {
-  // Geometrical variables
-  X: Vec; // scale factor at each spatial point
-  K: Vec; // extrinsic curvature (first derivative of X)
+/**
+ * DilatonGRState represents the complete dynamical system:
+ *   S = ∫ √-g [X R + Λ X - (1/2)(∇ψ)²]
+ *
+ * In conformal gauge: ds² = -e^(2ρ) dt² + e^(2ρ) dx²
+ *
+ * Fields (per spatial point i):
+ * - ρ(t,x): lapse function (metric scaling)
+ * - ρ̇(t,x): time derivative of ρ
+ * - X(t,x): dilaton field (real scalar, dynamical)
+ * - Ẋ(t,x): time derivative of X
+ * - ψ(t,x): matter field (massless scalar)
+ * - ψ̇(t,x): time derivative of ψ
+ *
+ * All three fields satisfy wave equations (no constraints):
+ *   (∂_t² - ∂_x²)ρ = e^(2ρ) / 2
+ *   (∂_t² - ∂_x²)X = 8π(T₀₀^ψ + T₀₀^Σ)
+ *   (∂_t² - ∂_x²)ψ = 0
+ *
+ * Interface dynamics:
+ *   Energy flux: Φ_in = ∂_t ψ · ∂_x ψ|_{x_b}
+ *   Entropy RHS: ds/dτ = (Φ_in - κs) / T_Σ
+ *   Dilaton jump: [∂_x X]_{x_b} = 8π E_Σ(s)
+ */
+export interface DilatonGRState {
+  // Metric field: lapse function (conformal factor)
+  rho: Vec; // ρ(t,x)
+  rho_dot: Vec; // ∂_t ρ
 
-  // Matter variables (massless scalar field)
-  psi: Vec; // scalar field
-  Pi_psi: Vec; // canonical momentum to psi
+  // Dilaton field: geometric scalar
+  X: Vec; // X(t,x)
+  X_dot: Vec; // ∂_t X
 
-  // Derived/cached
-  energy_density?: Vec; // T_00 (computed from matter)
-  momentum_density?: Vec; // T_01
+  // Matter field: massless scalar
+  psi: Vec; // ψ(t,x)
+  psi_dot: Vec; // ∂_t ψ
+
+  // Derived/cached observables
+  energy_flux?: Vec; // Φ_in = ∂_t ψ · ∂_x ψ (computed when needed)
+  dilaton_gradient?: Vec; // ∂_x X (computed when needed)
+  matter_stress?: Vec; // T₀₀^ψ (computed from matter)
 }
 
 // ============================================================================
-// Interface State
+// Interface Worldline State (v2.0)
 // ============================================================================
 
+/**
+ * Interface worldline at x = x_b with proper time parametrization.
+ *
+ * Observables:
+ * - s: entropy density (integrated energy stored at interface)
+ * - τ: proper time (worldline parameter)
+ * - x_b: fixed interface position (grid index)
+ *
+ * Dynamics:
+ *   ds/dτ = (Φ_in - κs) / T_Σ   (second law)
+ *   dτ/dt = 1 (synchronous with coordinate time for now)
+ *
+ * Junction condition:
+ *   [∂_x X]_{x_b} = 8π E_Σ(s)   (dilaton gradient jump)
+ */
 export interface InterfaceState {
-  s: number; // entropy density on the interface
-  theta: number; // extrinsic expansion (rate of length change)
-  sigma: number; // surface tension parameter
-  eta: number; // viscous resistance
-  position: number; // which grid point? (for now, fixed at x_b)
+  s: number; // entropy density (scalar)
+  x_b_index: number; // grid index of interface position
+  tau: number; // proper time (worldline parameter)
 }
 
 // ============================================================================
