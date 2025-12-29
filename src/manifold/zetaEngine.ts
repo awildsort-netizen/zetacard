@@ -19,30 +19,19 @@
 
 import type {
   TwoManifoldSystem,
-  InterfaceMembraneState,
-  InterfaceLagrangianParams,
-  PhysicalManifold,
-  ShadowManifold,
   EnergyFlux,
-  ConservationCheck,
-  NormalVector,
-  TangentBasis
+  ConservationCheck
 } from './types';
 import {
-  updateMembraneDynamics,
-  computeMembraneForce
+  updateMembraneDynamics
 } from './membrane';
 import {
   updateMembraneState,
   energyFluxFromStress,
   thermalRadiation,
   surfaceStressTensor,
-  expansionScalar,
   shearRateTensor
 } from './interface';
-import {
-  computeJumpConditions
-} from './junction';
 import {
   membraneStressInBulk,
   totalPhysicalStress,
@@ -52,10 +41,6 @@ import {
 import {
   checkConservation
 } from './conservation';
-import {
-  metricDeterminant,
-  inducedMetric
-} from './geometry';
 
 /**
  * Zeta Engine state
@@ -324,6 +309,7 @@ export function runZetaEngine(
  */
 export function isSystemConserved(
   state: ZetaEngineState,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   tolerance: number = 1e-6
 ): boolean {
   return state.conservationHistory.every(check => check.conserved);

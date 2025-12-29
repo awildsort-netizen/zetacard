@@ -25,11 +25,6 @@ import {
 } from './geometry';
 
 /**
- * Numerical epsilon for stability checks
- */
-const NUMERICAL_EPSILON = 1e-12;
-
-/**
  * Default membrane detection tolerance (configurable based on system scale)
  */
 const DEFAULT_MEMBRANE_TOLERANCE = 0.01;

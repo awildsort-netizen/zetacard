@@ -29,8 +29,7 @@ import {
   extrinsicCurvatureSquared,
   scalarCurvature,
   ricciTensor,
-  christoffelSymbols,
-  metricInverse
+  christoffelSymbols
 } from './geometry';
 import {
   expansionScalar,

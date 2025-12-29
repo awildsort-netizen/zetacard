@@ -28,7 +28,6 @@ import type {
 import {
   metricInverse,
   contractIndices,
-  extrinsicCurvatureTrace,
   lowerIndex
 } from './geometry';
 
