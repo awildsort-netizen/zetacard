@@ -12,7 +12,7 @@ import {
   CardMeta,
   CardFailure,
   CardActivationContext,
-  CardFailureRegistry,
+  CardFailureRegistry as _CardFailureRegistry,
 } from "../cardContract";
 import {
   CardRegistry,

@@ -1,14 +1,20 @@
 // Check if we're in Node.js environment
-const isNode = typeof require !== 'undefined' && typeof global !== 'undefined' && global.require === require;
+const isNode = typeof process !== 'undefined' && typeof process.versions !== 'undefined' && typeof process.versions.node !== 'undefined';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let fs: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let path: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let crypto: any = null;
 
 if (isNode) {
   try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     fs = require('fs/promises');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     path = require('path');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     crypto = require('crypto');
   } catch(e) {
     // Not in Node.js or modules not available
@@ -19,7 +25,9 @@ if (isNode) {
 // installed in the environment, the repo will use it as a backend for
 // interoperability. Otherwise the file-backed implementation remains used.
 let hasIsogit = false as boolean;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let isogit: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let nodeFS: any = null;
 try{
   // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -27,7 +35,9 @@ try{
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   nodeFS = require('fs');
   hasIsogit = !!isogit && !!nodeFS;
-}catch(e){ hasIsogit = false; }
+}catch(e){ 
+  hasIsogit = false; 
+}
 
 type CommitObj = {
   tree: string;
@@ -35,8 +45,11 @@ type CommitObj = {
   author?: {name:string,email?:string};
   message?: string;
   timestamp: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   metadata?: any;
 };
+
+type EventListener = (...args: unknown[]) => void;
 
 /**
  * Minimal ZetaRepo: git-compatible API surface (init, blobs, trees, commits, refs)
@@ -49,6 +62,9 @@ export class ZetaRepo {
   treesDir: string;
   commitsDir: string;
   refsFile: string;
+  useIsogit: boolean;
+  workdir: string;
+  listeners: Record<string, EventListener[]>;
 
   constructor(root = path.resolve('.zeta_repo')){
     this.root = root;
@@ -58,17 +74,41 @@ export class ZetaRepo {
     this.refsFile = path.join(this.root, 'refs.json');
     this.useIsogit = hasIsogit;
     this.workdir = path.join(this.root, 'workdir');
-    this.listeners = {} as Record<string, Function[]>;
+    this.listeners = {};
   }
 
   // simple event emitter
-  on(event:string, cb:Function){ this.listeners[event] = this.listeners[event]||[]; this.listeners[event].push(cb); }
-  off(event:string, cb:Function){ if(!this.listeners[event]) return; this.listeners[event] = this.listeners[event].filter(f=>f!==cb); }
-  emit(event:string, ...args:any[]){ (this.listeners[event]||[]).forEach(f=>{ try{ f(...args);}catch(e){} }); }
+  on(event:string, cb:EventListener){ 
+    this.listeners[event] = this.listeners[event]||[]; 
+    this.listeners[event].push(cb); 
+  }
+  off(event:string, cb:EventListener){ 
+    if(!this.listeners[event]) return; 
+    this.listeners[event] = this.listeners[event].filter(f=>f!==cb); 
+  }
+  emit(event:string, ...args:unknown[]){ 
+    (this.listeners[event]||[]).forEach(f=>{ 
+      try{ 
+        f(...args);
+      }catch(e){
+        // Ignore event listener errors
+      } 
+    }); 
+  }
 
   async init(){
-    try{ await fs.mkdir(this.root, {recursive:true}); }catch(e){}
-    for(const d of [this.blobsDir,this.treesDir,this.commitsDir]){ try{ await fs.mkdir(d, {recursive:true}); }catch(e){} }
+    try{ 
+      await fs.mkdir(this.root, {recursive:true}); 
+    }catch(e){
+      // Directory may already exist
+    }
+    for(const d of [this.blobsDir,this.treesDir,this.commitsDir]){ 
+      try{ 
+        await fs.mkdir(d, {recursive:true}); 
+      }catch(e){
+        // Directory may already exist
+      } 
+    }
     try{
       await fs.access(this.refsFile);
     }catch(e){
@@ -79,7 +119,9 @@ export class ZetaRepo {
         // prepare a simple working directory for isomorphic-git
         await fs.mkdir(this.workdir, {recursive:true});
         await isogit.init({fs: nodeFS, dir: this.workdir});
-      }catch(e){ /* ignore */ }
+      }catch(e){ 
+        // Isogit init may fail in some environments
+      }
     }
   }
 
@@ -92,7 +134,11 @@ export class ZetaRepo {
     const buf = Buffer.isBuffer(content) ? content : Buffer.from(content, 'utf8');
     const oid = this.oidOf(buf);
     const p = path.join(this.blobsDir, oid + '.blob');
-    try{ await fs.access(p); }catch(e){ await fs.writeFile(p, buf); }
+    try{ 
+      await fs.access(p); 
+    }catch(e){ 
+      await fs.writeFile(p, buf); 
+    }
     return oid;
   }
 
@@ -100,31 +146,47 @@ export class ZetaRepo {
     const p = path.join(this.blobsDir, oid + '.blob');
     try{
       return await fs.readFile(p);
-    }catch(e){ throw new Error('blob not found ' + oid); }
+    }catch(e){ 
+      throw new Error('blob not found ' + oid); 
+    }
   }
 
   async writeTree(entries: {path:string, oid:string, type:'blob'|'tree'}[]){
     // tree is mapping of path-> {oid,type}
-    const treeObj:any = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const treeObj: any = {};
     for(const e of entries) treeObj[e.path]= {oid:e.oid, type:e.type};
     const content = JSON.stringify(treeObj);
     const oid = this.oidOf(content);
     const p = path.join(this.treesDir, oid + '.json');
-    try{ await fs.access(p); }catch(e){ await fs.writeFile(p, content, 'utf8'); }
+    try{ 
+      await fs.access(p); 
+    }catch(e){ 
+      await fs.writeFile(p, content, 'utf8'); 
+    }
     return oid;
   }
 
   async readTree(oid:string){
     const p = path.join(this.treesDir, oid + '.json');
-    try{ const txt = await fs.readFile(p,'utf8'); return JSON.parse(txt); }catch(e){ throw new Error('tree not found ' + oid); }
+    try{ 
+      const txt = await fs.readFile(p,'utf8'); 
+      return JSON.parse(txt); 
+    }catch(e){ 
+      throw new Error('tree not found ' + oid); 
+    }
   }
 
-  async commit(treeOid:string, parents:string[], message:string, metadata?:any, author?:{name:string,email?:string}){
+  async commit(treeOid:string, parents:string[], message:string, metadata?:unknown, author?:{name:string,email?:string}){
     const commit:CommitObj = {tree:treeOid, parents: parents||[], message, timestamp: Date.now(), metadata, author };
     const content = JSON.stringify(commit, null, 2);
     const oid = this.oidOf(content);
     const p = path.join(this.commitsDir, oid + '.json');
-    try{ await fs.access(p); }catch(e){ await fs.writeFile(p, content, 'utf8'); }
+    try{ 
+      await fs.access(p); 
+    }catch(e){ 
+      await fs.writeFile(p, content, 'utf8'); 
+    }
     // emit commit event for watchers
     this.emit('commit', oid, commit);
     return oid;
@@ -132,23 +194,45 @@ export class ZetaRepo {
 
   async readCommit(oid:string):Promise<CommitObj>{
     const p = path.join(this.commitsDir, oid + '.json');
-    try{ const txt = await fs.readFile(p,'utf8'); return JSON.parse(txt) as CommitObj; }catch(e){ throw new Error('commit not found ' + oid); }
+    try{ 
+      const txt = await fs.readFile(p,'utf8'); 
+      return JSON.parse(txt) as CommitObj; 
+    }catch(e){ 
+      throw new Error('commit not found ' + oid); 
+    }
   }
 
   async listCommits(): Promise<string[]>{
-    try{ const files = await fs.readdir(this.commitsDir); return files.filter(f=>f.endsWith('.json')).map(f=>f.replace(/\.json$/,'')); }catch(e){ return []; }
+    try{ 
+      const files = await fs.readdir(this.commitsDir); 
+      return files.filter((f: string)=>f.endsWith('.json')).map((f: string)=>f.replace(/\.json$/,'')); 
+    }catch(e){ 
+      return []; 
+    }
   }
 
   async updateRef(ref:string, commitOid:string|null){
-    let refs:any = {};
-    try{ const txt = await fs.readFile(this.refsFile,'utf8'); refs = JSON.parse(txt); }catch(e){}
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let refs: any = {};
+    try{ 
+      const txt = await fs.readFile(this.refsFile,'utf8'); 
+      refs = JSON.parse(txt); 
+    }catch(e){
+      // Refs file may not exist yet
+    }
     refs[ref]=commitOid;
     await fs.writeFile(this.refsFile, JSON.stringify(refs,null,2),'utf8');
     this.emit('ref-update', ref, commitOid);
   }
 
   async readRef(ref:string){
-    try{ const txt = await fs.readFile(this.refsFile,'utf8'); const refs = JSON.parse(txt); return refs[ref]||null; }catch(e){ return null; }
+    try{ 
+      const txt = await fs.readFile(this.refsFile,'utf8'); 
+      const refs = JSON.parse(txt); 
+      return refs[ref]||null; 
+    }catch(e){ 
+      return null; 
+    }
   }
 
   // convenience: write a card manifest at path and commit on branch
@@ -160,19 +244,21 @@ export class ZetaRepo {
         await fs.mkdir(path.dirname(fullPath), {recursive:true});
         await fs.writeFile(fullPath, manifestContent, 'utf8');
         await isogit.add({fs: nodeFS, dir: this.workdir, filepath: cardPath});
-        const oid = await isogit.commit({fs: nodeFS, dir: this.workdir, message, author: {name: (author&&author.name)||'zeta', email: (author&&author.email)||'zeta@example.com'}});
+        const oid = await isogit.commit({fs: nodeFS, dir: this.workdir, message, author: {name: author?.name || 'zeta', email: author?.email || 'zeta@example.com'}});
         // note: isogit.commit returns oid; we still mirror commit into our local object store
         const blobOid = await this.writeBlob(manifestContent);
-        const entries = [{path:cardPath, oid:blobOid, type:'blob'}];
+        const entries = [{path:cardPath, oid:blobOid, type:'blob' as const}];
         const treeOid = await this.writeTree(entries);
         const parent = await this.readRef(branch);
         const commitOid = await this.commit(treeOid, parent? [parent] : [], message, undefined, author);
         await this.updateRef(branch, commitOid);
         return {blobOid, treeOid, commitOid, gitOid: oid};
-      }catch(e){ /* fallback to file-backed below */ }
+      }catch(e){ 
+        // Fallback to file-backed below if isogit fails
+      }
     }
     const blobOid = await this.writeBlob(manifestContent);
-    const entries = [{path:cardPath, oid:blobOid, type:'blob'}];
+    const entries = [{path:cardPath, oid:blobOid, type:'blob' as const}];
     const treeOid = await this.writeTree(entries);
     const parent = await this.readRef(branch);
     const commitOid = await this.commit(treeOid, parent? [parent] : [], message);
@@ -188,7 +274,9 @@ export class ZetaRepo {
         // attempt to read file at ref using isomorphic-git
         const buf = await isogit.readFile({fs: nodeFS, dir: this.workdir, filepath: cardPath, ref});
         if(buf) return buf.toString('utf8');
-      }catch(e){ /* fallback */ }
+      }catch(e){ 
+        // Fallback to file-backed implementation
+      }
     }
     const commitOid = await this.readRef(ref);
     if(!commitOid) throw new Error('ref has no commit: ' + ref);

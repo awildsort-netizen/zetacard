@@ -2,25 +2,39 @@ import { repo } from './zetaRepo';
 
 type Location = { commit: string | null; path: string };
 
+type EventListener = (...args: unknown[]) => void;
+
 export class LocationManager {
   currentCommit: string | null = null;
   currentPath: string = '/';
-  listeners: Record<string, Function[]> = {};
+  listeners: Record<string, EventListener[]> = {};
 
   constructor(){ }
 
-  on(ev: string, cb: (...args: unknown[]) => void){ this.listeners[ev] = this.listeners[ev]||[]; this.listeners[ev].push(cb); }
-  off(ev: string, cb: (...args: unknown[]) => void){ if(!this.listeners[ev]) return; this.listeners[ev]=this.listeners[ev].filter(f=>f!==cb); }
-  emit(ev:string, ...args:unknown[]){ (this.listeners[ev]||[]).forEach(f=>{ try{ f(...args);}catch(e){ /* ignore listener errors */ } }); }
+  on(ev: string, cb: EventListener){ this.listeners[ev] = this.listeners[ev]||[]; this.listeners[ev].push(cb); }
+  off(ev: string, cb: EventListener){ if(!this.listeners[ev]) return; this.listeners[ev]=this.listeners[ev].filter(f=>f!==cb); }
+  emit(ev:string, ...args:unknown[]){ 
+    (this.listeners[ev]||[]).forEach(f=>{ 
+      try{ 
+        f(...args);
+      }catch(e){ 
+        // Ignore listener errors to prevent one failing listener from affecting others
+      } 
+    }); 
+  }
 
   async init(){
     try{
       await repo.init();
-    }catch(e){ /* ignore init errors */ }
+    }catch(e){ 
+      // Ignore init errors - repo may already be initialized
+    }
     try{
       const head = await repo.readRef('refs/heads/main');
       this.currentCommit = head;
-    }catch(e){ this.currentCommit = null; }
+    }catch(e){ 
+      this.currentCommit = null; 
+    }
     this.currentPath = '/';
 
     // subscribe to repo events to keep location live
@@ -41,7 +55,9 @@ export class LocationManager {
           this.emit('commit', {oid, commit});
         });
       }
-    }catch(e){ /* ignore subscription errors */ }
+    }catch(e){ 
+      // Ignore subscription errors - repo events may not be available
+    }
   }
 
   async here(): Promise<Location>{
@@ -60,7 +76,11 @@ export class LocationManager {
       // if ref looks like a 40-char oid, use directly
       if(/^[0-9a-f]{6,40}$/i.test(ref)) commit = ref;
       else {
-        try{ commit = await repo.readRef(ref.startsWith('refs/')?ref:`refs/heads/${ref}`); }catch(e){ commit = null; }
+        try{ 
+          commit = await repo.readRef(ref.startsWith('refs/')?ref:`refs/heads/${ref}`); 
+        }catch(e){ 
+          commit = null; 
+        }
       }
       return { commit, path: p };
     }
@@ -69,7 +89,9 @@ export class LocationManager {
     try{
       const commit = await repo.readRef(target.startsWith('refs/')?target:`refs/heads/${target}`);
       return { commit };
-    }catch(e){ return { commit: null }; }
+    }catch(e){ 
+      return { commit: null }; 
+    }
   }
 
   async move(target: string){

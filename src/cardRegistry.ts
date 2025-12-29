@@ -7,6 +7,16 @@
  * The README is a projection of this registry, not an independent source.
  */
 
+import { CardID, CardMeta, CardFailure } from "./cardContract";
+
+export type CardManifest = {
+  title: string;
+  tagline?: string;
+  semanticDescriptor?: string;
+  description?: string;
+  tags?: string[];
+};
+
 export type CardQueryResult = {
   manifest: CardManifest;
   score: number;
@@ -28,7 +38,6 @@ function dot(a: number[], b: number[]) {
   for (let i = 0; i < Math.min(a.length, b.length); i++) s += a[i] * b[i];
   return s;
 }
-import { CardID, CardMeta, CardFailure } from "./cardContract";
 
 export interface CardRegistryEntry {
   id: CardID;
