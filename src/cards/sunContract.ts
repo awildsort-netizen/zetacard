@@ -289,11 +289,12 @@ export class SunContract implements ZetaCardContract<SunContractState> {
     violations.push(...maskViolations);
 
     // Compute maximum desired intake from softmax probabilities
-    // Intake = cap_a * exposure * max(softmax) or integrate entropy
-    // Using max for sharpness.
-    const maxProb = Math.max(...probs, 0);
+    // Intake = cap_a * exposure * Σ(softmax) for full field coupling
+    // Sum of probs is always 1.0 after normalization, representing full field availability
+    // If no offer field is set, default to 1.0 (full availability) for backwards compatibility
+    const probSum = probs.length > 0 ? probs.reduce((a, b) => a + b, 0) : 1.0;
     const psi = this.offer();
-    const maxDesired = agent.capCurrent * agent.exposure * psi * maxProb;
+    const maxDesired = agent.capCurrent * agent.exposure * psi * probSum;
 
     let intake = maxDesired;
 
@@ -364,12 +365,11 @@ export class SunContract implements ZetaCardContract<SunContractState> {
     const decay = agent.decayRate ?? 0.98; // exponential decay (half-life ~33 steps)
     const baseline = 0; // exposure decays toward 0 (baseline)
 
-    // Stage 1: Ramp limit (exposure cannot change faster than ρ_exposure)
+    // Stage 1: Ramp limit (exposure cannot change faster than ρ_exposure * dt)
     const maxDelta = agent.exposureRampRate * dt;
-    const ramped = Math.max(
-      targetExposure - maxDelta,
-      Math.min(targetExposure + maxDelta, Math.min(1, targetExposure))
-    );
+    const delta = targetExposure - currentExposure;
+    const clampedDelta = Math.max(-maxDelta, Math.min(maxDelta, delta));
+    const ramped = Math.max(0, Math.min(1, currentExposure + clampedDelta));
 
     // Stage 2: Apply decay toward baseline
     agent.exposure = decay * ramped + (1 - decay) * baseline;
