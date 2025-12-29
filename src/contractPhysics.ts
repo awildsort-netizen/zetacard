@@ -12,6 +12,9 @@
 
 export type Vec = number[]; // length 8 by default
 
+// Numerical stability constant for division by zero protection
+const NUMERICAL_EPSILON = 1e-12;
+
 // ============================================================================
 // Core Mathematical Functions
 // ============================================================================
