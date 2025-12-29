@@ -368,7 +368,7 @@ For more details, see the full [Contributing Guide](docs/CONTRIBUTING.md).
 
 ### Architecture & Design
 - [Architecture Decisions](docs/architecture/decisions/README.md) — Why we made key design choices
-- [Card Contract Specification](docs/reference/CARD_CONTRACT.md) — Formal card interface definition
+- [Card Contract Specification](src/cardContract.ts) — Formal card interface definition
 - [Routing Architecture](docs/reference/ROUTING_ARCHITECTURE.md) — How routing works as projection
 
 ### Physics Framework
@@ -386,7 +386,7 @@ For more details, see the full [Contributing Guide](docs/CONTRIBUTING.md).
 - [Antclock Technical Reference](docs/reference/ANTCLOCK_TECHNICAL_REFERENCE.md) — Antclock solver details
 - [LLM Correspondence Spec](docs/reference/LLM_CORRESPONDENCE_SPEC.md) — LLM physics bridge
 - [Sun Contract](docs/reference/SUN_CONTRACT.md) — Safety contract model
-- [Zeta Gradient Invariant](docs/reference/ZETA_GRADIENT_INVARIANT.md) — Gradient invariant principle
+- [Zeta Gradient Invariant](docs/physics/ZETA_GRADIENT_INVARIANT.md) — Gradient invariant principle
 
 ## Key Topics
 
