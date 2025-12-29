@@ -5,7 +5,7 @@ import App from '../App'
 
 // Mock Three.js Canvas for testing
 vi.mock('@react-three/fiber', () => ({
-  Canvas: ({ children }: any) => <div data-testid="3d-canvas">{children}</div>,
+  Canvas: ({ children }: { children?: React.ReactNode }) => <div data-testid="3d-canvas">{children}</div>,
   useFrame: vi.fn(),
   useThree: vi.fn(() => ({ camera: {}, scene: {}, gl: {} })),
 }))

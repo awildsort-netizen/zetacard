@@ -1,3 +1,8 @@
+import React, {useEffect, useRef, useState} from 'react';
+import {queryCards, detectFacets, refreshRegistryFromRepo, type CardQueryResult} from '../cardRegistry';
+import { eventLog } from '../instrumentation';
+
+export default function Omnibox({onInvoke, open: externalOpen, onOpenChange}:{onInvoke?:(id:string, mode:'SafeRun'|'Run', card:CardQueryResult)=>void, open?:boolean, onOpenChange?:(open:boolean)=>void}){
 import React, { useEffect, useRef, useState } from 'react';
 import { CardRegistry, listCards, CardRegistryEntry } from '../cardRegistry';
 import { Omnicard } from '../cards/omnicard';
@@ -28,6 +33,7 @@ export default function Omnibox({ onActivateCard, open: externalOpen, onOpenChan
   };
 
   const [q, setQ] = useState('');
+  const [results, setResults] = useState<CardQueryResult[]>([]);
   const [results, setResults] = useState<CardRegistryEntry[]>([]);
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);

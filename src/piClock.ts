@@ -149,7 +149,7 @@ export function tickPiClock(
 
   // Apply lens: chunk window into columns
   const columns: number[][] = [];
-  for (let w of lensWidths) {
+  for (const w of lensWidths) {
     const col: number[] = [];
     for (let i = 0; i < w && i < window.length; i++) {
       col.push(window[i]);

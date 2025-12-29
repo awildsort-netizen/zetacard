@@ -33,7 +33,7 @@ export class Quadtree {
   // Deliver events to `card` if resonance passes. `rect` is the card's
   // screen rectangle {x,y,w,h} in pixels. screenW/screenH are canvas size.
   // After delivery the events in leaf nodes are cleared (transient events).
-  queryAndDeliver(card:any, rect:{x:number,y:number,w:number,h:number}, resonanceThreshold:number, screenW:number, screenH:number){
+  queryAndDeliver(card:{ bandEnergy: number[]; size: number; surface: Float32Array }, rect:{x:number,y:number,w:number,h:number}, resonanceThreshold:number, screenW:number, screenH:number){
     const cband = card.bandEnergy.slice(); const cn = norm(cband);
     if(cn<=0) return;
     if(this.children){
