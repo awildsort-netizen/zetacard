@@ -20,21 +20,20 @@ test('omnibox search -> click Run -> card displays full screen', async () => {
   render(<App />)
 
   // omnibox input should be present
-  const input = screen.getByPlaceholderText(/Type or paste to find cards/i)
+  const input = screen.getByPlaceholderText(/Type card ID or name/i)
   expect(input).toBeTruthy()
 
   // type a query that should match a card
   fireEvent.change(input, { target: { value: 'heartbeat' } })
   
-  // the results list should render (each result shows a 'match:' line)
+  // the results list should render with card results
   await waitFor(() => {
-    expect(document.body.innerHTML).toMatch(/match:/i)
+    expect(document.body.innerHTML).toMatch(/Spectral Heartbeat/i)
   }, { timeout: 2000 })
 
-  // click Run button to invoke the selected card
-  const runButtons = screen.getAllByRole('button', { name: /Run/i })
-  // First Run button is in the Omnibox header
-  fireEvent.click(runButtons[0])
+  // click Activate button to invoke the selected card
+  const activateButton = screen.getByRole('button', { name: /Activate/i })
+  fireEvent.click(activateButton)
 
   // card should display with title and tagline
   await waitFor(() => {
@@ -45,14 +44,14 @@ test('omnibox search -> click Run -> card displays full screen', async () => {
 test('omnibox Enter key -> card displays full screen', async () => {
   render(<App />)
 
-  const input = screen.getByPlaceholderText(/Type or paste to find cards/i)
+  const input = screen.getByPlaceholderText(/Type card ID or name/i)
   
   // type a query
   fireEvent.change(input, { target: { value: 'spectral' } })
   
   // wait for results
   await waitFor(() => {
-    expect(document.body.innerHTML).toMatch(/match:/i)
+    expect(document.body.innerHTML).toMatch(/Spectral Heartbeat/i)
   }, { timeout: 2000 })
 
   // press Enter to invoke selected card
@@ -67,15 +66,15 @@ test('omnibox Enter key -> card displays full screen', async () => {
 test('click Close button -> returns to main view', async () => {
   render(<App />)
 
-  const input = screen.getByPlaceholderText(/Type or paste to find cards/i)
+  const input = screen.getByPlaceholderText(/Type card ID or name/i)
   fireEvent.change(input, { target: { value: 'heartbeat' } })
   
   await waitFor(() => {
-    expect(document.body.innerHTML).toMatch(/match:/i)
+    expect(document.body.innerHTML).toMatch(/Spectral Heartbeat/i)
   }, { timeout: 2000 })
 
-  const runButtons = screen.getAllByRole('button', { name: /Run/i })
-  fireEvent.click(runButtons[0])
+  const activateButton = screen.getByRole('button', { name: /Activate/i })
+  fireEvent.click(activateButton)
 
   // card should be displayed
   await waitFor(() => {

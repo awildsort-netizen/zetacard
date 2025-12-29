@@ -1,10 +1,16 @@
 import { test, expect } from 'vitest'
 import { Quadtree } from '../quadtree'
 
+interface MockCard {
+  size: number;
+  surface: Float32Array;
+  bandEnergy: number[];
+}
+
 test('Quadtree delivers event to card when resonance matches', () => {
   const qt = new Quadtree(0,0,1,1)
   // simple mock card
-  const card:any = { size: 10, surface: new Float32Array(100).fill(0), bandEnergy: [1,0,0] }
+  const card: MockCard = { size: 10, surface: new Float32Array(100).fill(0), bandEnergy: [1,0,0] }
   // rect occupying full screen
   const rect = { x:0,y:0,w:100,h:100 }
   // insert an event at center (0.5,0.5) with matching bandEnergy

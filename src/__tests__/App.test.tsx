@@ -71,8 +71,8 @@ test('canvas has background color style to prevent blank appearance', () => {
   const { container } = render(<App />)
   
   const canvas = container.querySelector('canvas') as HTMLCanvasElement
-  const styles = window.getComputedStyle(canvas)
   
   // Canvas should have a background color (from inline style)
-  expect(canvas.style.backgroundColor).toBe('#111')
+  // Browsers convert hex to rgb format
+  expect(canvas.style.backgroundColor).toBe('rgb(17, 17, 17)')
 })

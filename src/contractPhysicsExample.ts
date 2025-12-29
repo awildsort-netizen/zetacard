@@ -262,12 +262,6 @@ const customPhiParams: PhiParams = {
   theta_legal: 0.7, // Lower legal threshold
 };
 
-const customAgentParams: AgentParams = {
-  ...DEFAULT_AGENT_PARAMS,
-  G0: 0.8, // Lower G-force tolerance
-  beta: 10.0, // Higher penalty for legal risk
-};
-
 const testState: Vec = [0.8, 0.6, 0.7, 0.6, 0.7, 0.75, 0.5, 0.6];
 const customPhi = phi_c(testState, customPhiParams);
 const defaultPhi = phi_c(testState, DEFAULT_PHI_PARAMS);

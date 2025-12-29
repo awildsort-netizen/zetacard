@@ -1,4 +1,4 @@
-import React, { useState, useEffect, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy } from 'react';
 import bioIndexData from '../../.zeta_repo/workdir/cards/gi-flow-topology/bio-index.json';
 import geometricPurposeSchema from '../../.zeta_repo/workdir/cards/gi-flow-topology/geometric-purpose-schema.json';
 import { mapOrganismsTo3D, ZetaClassLegend } from '../utils/gi3dMapping';
@@ -13,6 +13,24 @@ interface Organism {
   zetaClass: string;
   description: string;
   abundance_healthy: string;
+  gradientOptima?: Record<string, string | number>;
+  keyMetabolites?: string[];
+  interactionMap?: {
+    cooperates_with?: string[];
+    competes_with?: string[];
+  };
+}
+
+interface SchemaField {
+  name: string;
+  definition: string;
+  values?: string[];
+}
+
+interface GeometricPurposeSchema {
+  schema: {
+    canonical_fields?: Record<string, SchemaField>;
+  };
 }
 
 export default function GIFlowViewer({ mode = 'overview' }: { mode?: 'overview' | 'bio-index' | 'equations' | 'schema' }) {
@@ -48,10 +66,10 @@ export default function GIFlowViewer({ mode = 'overview' }: { mode?: 'overview' 
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', backgroundColor: '#0a0e27', color: '#e0e0e0', fontFamily: 'monospace', fontSize: '13px' }}>
       {/* Tab Navigation */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid #333', backgroundColor: '#0f1229' }}>
-        {['overview', 'bio-index', 'schema', 'interventions'].map(tab => (
+        {(['overview', 'bio-index', 'schema', 'interventions'] as const).map(tab => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab as any)}
+            onClick={() => setActiveTab(tab)}
             style={{
               flex: 1,
               padding: '10px 12px',
@@ -233,7 +251,7 @@ export default function GIFlowViewer({ mode = 'overview' }: { mode?: 'overview' 
               </p>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
-                {Object.entries((geometricPurposeSchema as any).schema.canonical_fields || {}).map(([key, field]: [string, any]) => (
+                {Object.entries((geometricPurposeSchema as GeometricPurposeSchema).schema.canonical_fields || {}).map(([key, field]) => (
                   <div key={key} style={{ padding: '12px', backgroundColor: 'rgba(100, 181, 246, 0.05)', borderRadius: '4px', border: '1px solid #333' }}>
                     <div style={{ color: '#64b5f6', fontWeight: 'bold' }}>{field.name} ({key})</div>
                     <div style={{ fontSize: '11px', color: '#999', marginTop: '4px', lineHeight: 1.5 }}>
@@ -293,11 +311,11 @@ export default function GIFlowViewer({ mode = 'overview' }: { mode?: 'overview' 
               <div style={{ marginTop: '4px' }}><strong>Healthy Abundance:</strong> {selectedOrganismData.abundance_healthy}</div>
             </div>
 
-            {(selectedOrganismData as any).gradientOptima && (
+            {selectedOrganismData.gradientOptima && (
               <>
                 <h4 style={{ color: '#90caf9', fontSize: '12px', marginBottom: '8px' }}>Gradient Optima</h4>
                 <div style={{ fontSize: '11px', color: '#999', lineHeight: 1.6 }}>
-                  {Object.entries((selectedOrganismData as any).gradientOptima).map(([key, val]: [string, any]) => (
+                  {Object.entries(selectedOrganismData.gradientOptima).map(([key, val]) => (
                     <div key={key} style={{ marginBottom: '4px' }}>
                       <span style={{ color: '#aaa' }}>{key}:</span> {val}
                     </div>
@@ -306,21 +324,21 @@ export default function GIFlowViewer({ mode = 'overview' }: { mode?: 'overview' 
               </>
             )}
 
-            {(selectedOrganismData as any).keyMetabolites && (
+            {selectedOrganismData.keyMetabolites && (
               <>
                 <h4 style={{ color: '#90caf9', fontSize: '12px', marginBottom: '8px', marginTop: '12px' }}>Key Metabolites</h4>
                 <div style={{ fontSize: '11px', color: '#999' }}>
-                  {((selectedOrganismData as any).keyMetabolites || []).join(', ')}
+                  {selectedOrganismData.keyMetabolites.join(', ')}
                 </div>
               </>
             )}
 
-            {(selectedOrganismData as any).interactionMap && (
+            {selectedOrganismData.interactionMap && (
               <>
                 <h4 style={{ color: '#90caf9', fontSize: '12px', marginBottom: '8px', marginTop: '12px' }}>Interactions</h4>
                 <div style={{ fontSize: '11px', color: '#999', lineHeight: 1.6 }}>
-                  <div><span style={{ color: '#64b5f6' }}>Cooperates:</span> {((selectedOrganismData as any).interactionMap.cooperates_with || []).join(', ')}</div>
-                  <div style={{ marginTop: '4px' }}><span style={{ color: '#ff6b6b' }}>Competes:</span> {((selectedOrganismData as any).interactionMap.competes_with || []).join(', ')}</div>
+                  <div><span style={{ color: '#64b5f6' }}>Cooperates:</span> {(selectedOrganismData.interactionMap.cooperates_with || []).join(', ')}</div>
+                  <div style={{ marginTop: '4px' }}><span style={{ color: '#ff6b6b' }}>Competes:</span> {(selectedOrganismData.interactionMap.competes_with || []).join(', ')}</div>
                 </div>
               </>
             )}

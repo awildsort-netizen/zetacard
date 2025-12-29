@@ -18,18 +18,19 @@ vi.mock('@react-three/drei', () => ({
 describe('Omnibox Card Flow', () => {
   test('omnibox displays search input', () => {
     render(<App />)
-    const input = screen.getByPlaceholderText(/Type or paste to find cards/i)
+    const input = screen.getByPlaceholderText(/Type card ID or name/i)
     expect(input).toBeTruthy()
   })
 
   test('omnibox search shows results', async () => {
     render(<App />)
-    const input = screen.getByPlaceholderText(/Type or paste to find cards/i)
+    const input = screen.getByPlaceholderText(/Type card ID or name/i)
     
     fireEvent.change(input, { target: { value: 'heartbeat' } })
     
     await waitFor(() => {
-      expect(document.body.innerHTML).toMatch(/match:/i)
+      // Check that results are rendered with card information
+      expect(document.body.innerHTML).toMatch(/Spectral Heartbeat/i)
     })
   })
 
@@ -40,10 +41,11 @@ describe('Omnibox Card Flow', () => {
     fireEvent.change(input, { target: { value: 'spectral' } })
     
     await waitFor(() => {
-      expect(document.body.innerHTML).toMatch(/match:/i)
+      // Check that results are rendered
+      expect(document.body.innerHTML).toMatch(/Spectral Heartbeat/i)
     })
     
-    const runButton = screen.getByRole('button', { name: /Run/i })
+    const runButton = screen.getByRole('button', { name: /Activate/i })
     fireEvent.click(runButton)
     
     // Should show card in full screen
