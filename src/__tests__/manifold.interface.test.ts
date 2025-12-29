@@ -12,8 +12,8 @@ import {
   entropyEvolution,
   membraneTemperature,
   updateMembraneState
-} from '../interface';
-import type { Metric, InterfaceMembraneState, InterfaceLagrangianParams, EnergyFlux } from '../types';
+} from '../manifold/interface';
+import type { Metric, InterfaceMembraneState, InterfaceLagrangianParams, EnergyFlux } from '../manifold/types';
 
 describe('Interface Lagrangian Terms', () => {
   test('expansionScalar for uniform expansion', () => {

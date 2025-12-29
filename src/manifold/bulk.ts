@@ -10,19 +10,18 @@
  */
 
 import type {
-  Metric,
   Tensor,
   Coordinates,
   StressEnergyTensor,
   PhysicalManifold,
   ShadowManifold,
-  InterfaceMembraneState
+  InterfaceMembraneState,
+  Metric
 } from './types';
 import {
   einsteinTensor,
   ricciTensor,
-  christoffelSymbols,
-  metricDeterminant
+  christoffelSymbols
 } from './geometry';
 
 /**
@@ -234,7 +233,7 @@ export function initializeShadowManifold(dim: number = 4): ShadowManifold {
  * Compute energy density from stress-energy tensor
  * ρ = T^0_0 (time-time component with raised first index)
  */
-export function energyDensity(T: StressEnergyTensor, g: Metric): number {
+export function energyDensity(T: StressEnergyTensor): number {
   // Simplified: return T_00 (assuming nearly Minkowski)
   return T[0][0];
 }
@@ -243,7 +242,7 @@ export function energyDensity(T: StressEnergyTensor, g: Metric): number {
  * Compute momentum density from stress-energy tensor
  * p^i = T^0_i
  */
-export function momentumDensity(T: StressEnergyTensor, g: Metric): number[] {
+export function momentumDensity(T: StressEnergyTensor): number[] {
   const dim = T.length;
   const p: number[] = Array(dim - 1).fill(0);
   

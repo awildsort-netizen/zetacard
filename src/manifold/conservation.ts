@@ -18,8 +18,7 @@ import type {
   TwoManifoldSystem
 } from './types';
 import {
-  christoffelSymbols,
-  metricInverse
+  christoffelSymbols
 } from './geometry';
 import {
   surfaceStressDivergence

@@ -8,7 +8,7 @@
  * - Extrinsic curvature for embedded hypersurfaces
  */
 
-import type { Metric, Coordinates, Tensor, Vec, ExtrinsicCurvature } from './types';
+import type { Metric, Tensor, Vec, ExtrinsicCurvature } from './types';
 
 /**
  * Compute determinant of a metric tensor

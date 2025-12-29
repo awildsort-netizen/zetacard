@@ -25,7 +25,6 @@ import type {
   EnergyFlux
 } from './types';
 import {
-  contractIndices,
   extrinsicCurvatureTrace,
   extrinsicCurvatureSquared,
   scalarCurvature,
@@ -35,12 +34,8 @@ import {
 } from './geometry';
 import {
   expansionScalar,
-  shearRateTensor,
-  entropyEvolution
+  shearRateTensor
 } from './interface';
-import {
-  stressDifference
-} from './junction';
 
 /**
  * Compute divergence of surface stress D_a S^ab
@@ -55,7 +50,6 @@ export function surfaceStressDivergence(
   dh: number[][][] // Partial derivatives ∂_a h_bc for Christoffel symbols
 ): Vec {
   const dim = h.length;
-  const hInv = metricInverse(h);
   const Gamma = christoffelSymbols(h, dh);
   
   const div: number[] = Array(dim).fill(0);
@@ -178,8 +172,7 @@ export function entropyBalanceEquation(
  */
 export function membraneRicciScalar(
   h: Metric,
-  dh: number[][][],
-  d2h: number[][][][]
+  dh: number[][][]
 ): number {
   try {
     // Compute Christoffel symbols

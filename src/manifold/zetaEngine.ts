@@ -133,7 +133,6 @@ export function stepZetaEngine(
   
   // Simplified normal and tangent vectors (would be computed from embedding)
   const normal_phys: number[] = [1, 0, 0, 0]; // Timelike for simplicity
-  const normal_shadow: number[] = [1, 0, 0, 0];
   const tangents: number[][] = [
     [0, 1, 0, 0],
     [0, 0, 1, 0],
@@ -202,10 +201,6 @@ export function stepZetaEngine(
   // Apply dynamics update
   updatedMembrane.entropy = dynamics.entropy;
   updatedMembrane.surfaceStress = newSurfaceStress;
-  
-  // === Step 3: Check junction conditions ===
-  
-  const junctionCheck = computeJumpConditions(updatedMembrane);
   
   // === Step 4: Update bulk metrics (simplified) ===
   

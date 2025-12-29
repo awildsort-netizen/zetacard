@@ -20,7 +20,6 @@ import type {
   InterfaceMembraneState
 } from './types';
 import {
-  contractIndices,
   extrinsicCurvatureTrace
 } from './geometry';
 

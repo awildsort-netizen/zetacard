@@ -14,10 +14,10 @@ import {
   extrinsicCurvatureSquared,
   inducedMetric,
   normalizeVector,
-  vectorType,
-  minkowskiMetric
-} from '../geometry';
-import type { Metric, Vec } from '../types';
+  vectorType
+} from '../manifold/geometry';
+import { minkowskiMetric } from '../manifold/bulk';
+import type { Metric, Vec } from '../manifold/types';
 
 describe('Metric Operations', () => {
   test('metricDeterminant for Minkowski metric', () => {

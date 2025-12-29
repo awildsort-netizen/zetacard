@@ -21,7 +21,6 @@ import type {
   Tensor,
   ExtrinsicCurvature,
   ShearRate,
-  ViscosityCoefficients,
   EnergyFlux,
   InterfaceLagrangianParams,
   InterfaceMembraneState
@@ -30,8 +29,7 @@ import {
   metricInverse,
   contractIndices,
   extrinsicCurvatureTrace,
-  lowerIndex,
-  raiseIndex
+  lowerIndex
 } from './geometry';
 
 /**
@@ -73,9 +71,6 @@ export function shearRateTensor(
   
   // Compute expansion θ = D_c u^c
   const theta = expansionScalar(flowVector, flowDerivative, h);
-  
-  // Lower flow indices
-  const flowLower = lowerIndex(flowVector, h);
   
   // Compute σ_ab
   const sigma: number[][] = Array(dim).fill(0).map(() => Array(dim).fill(0));
@@ -289,11 +284,16 @@ export function energyFluxFromStress(
   normal: Vec,
   flow: Vec
 ): number {
-  const n = normal.length;
+  if (!T || !Array.isArray(T) || T.length === 0) {
+    return 0;
+  }
+  
+  const n = Math.min(normal.length, flow.length, T.length);
   let flux = 0;
   
   for (let mu = 0; mu < n; mu++) {
-    for (let nu = 0; nu < n; nu++) {
+    if (!Array.isArray(T[mu])) continue;
+    for (let nu = 0; nu < n && nu < (T[mu] as number[]).length; nu++) {
       flux += (T as number[][])[mu][nu] * normal[mu] * flow[nu];
     }
   }
