@@ -131,3 +131,153 @@ export function validateCardContract(card: ZetaCardContract): CardFailure[] {
 
   return failures;
 }
+
+// ============================================================================
+// Zeta Gradient Invariant: Field-Based Contract Law
+// ============================================================================
+// See: ZETA_GRADIENT_INVARIANT.md
+//
+// Principle: Motion follows field reshaping, not coercion.
+// You do not fix motion by commanding it.
+// You fix motion by reshaping the field.
+//
+// ============================================================================
+
+/** Vector type for gradients */
+export type Vec = number[];
+
+/** Coercion tracking for detected violations */
+export type CoercionRecord = {
+  magnitude: number; // |F_coercion|
+  timestamp: number; // when applied
+  expectedDecay: "exponential" | "linear" | "step"; // decay model
+};
+
+/** Potential field modification */
+export type PotentialModifier = {
+  name: string; // what changed
+  magnitude: number; // how much
+  reason: string; // why
+  affectedStates?: unknown[]; // which states feel the change
+};
+
+/** Gradient-aware card contract: motion follows field, not commands */
+export interface ZetaGradientCardContract<State = unknown>
+  extends ZetaCardContract<State>
+{
+  /**
+   * The potential field Φ(x) governing this card's state space.
+   * Lower potential = lower energy = more natural/stable.
+   */
+  potentialField(state: State): number;
+
+  /**
+   * Gradient (force direction): ∇Φ(x)
+   * Negative gradient is the direction of steepest descent (least resistance).
+   */
+  gradient(state: State): Vec;
+
+  /**
+   * Coercion tracking: if the system is forcing motion against the gradient,
+   * this records the external force. Must decay (not sustained).
+   */
+  coercionForce?: CoercionRecord;
+
+  /**
+   * Field reshaping: explicit, trackable modifications to the potential.
+   * This is the ONLY way to sustainably change motion.
+   *
+   * @returns success and the new potential function
+   */
+  reshapeField?(
+    delta: PotentialModifier
+  ): {
+    success: boolean;
+    newPotential?: (state: State) => number;
+    reason?: string;
+  };
+}
+
+/**
+ * Violation types for the gradient invariant.
+ * These detect when institutions are doing motion work instead of field work.
+ */
+export const GradientFailureRegistry = {
+  SUSTAINED_COERCION: {
+    code: "sustained_coercion",
+    message:
+      "Card applying force for too long; motion work instead of field work",
+    severity: "warn" as const,
+  },
+  HIDDEN_BASIN: {
+    code: "hidden_basin",
+    message: "No gradient; agent trapped, cannot move",
+    severity: "error" as const,
+  },
+  CLIFF_POTENTIAL: {
+    code: "cliff_potential",
+    message: "Potential has discontinuities; abrupt field changes",
+    severity: "warn" as const,
+  },
+  FLAT_SPECTRUM: {
+    code: "flat_spectrum",
+    message: "No preferred direction; stuck or oscillating",
+    severity: "warn" as const,
+  },
+  MISSING_FIELD: {
+    code: "missing_field",
+    message: "Card does not declare potentialField; cannot check gradient invariant",
+    severity: "info" as const,
+  },
+};
+
+/**
+ * Check if a card respects the gradient invariant.
+ * Returns violations if the card is doing motion work instead of field work.
+ */
+export function validateGradientInvariant(
+  card: ZetaCardContract<any>
+): CardFailure[] {
+  const failures: CardFailure[] = [];
+  const gradCard = card as ZetaGradientCardContract<any>;
+
+  // If not a gradient card, that's OK (it's optional), but note it
+  if (!gradCard.potentialField) {
+    failures.push({
+      code: GradientFailureRegistry.MISSING_FIELD.code,
+      message: GradientFailureRegistry.MISSING_FIELD.message,
+      severity: GradientFailureRegistry.MISSING_FIELD.severity,
+    });
+    return failures;
+  }
+
+  const state = card.getState();
+  const phi = gradCard.potentialField(state);
+  const grad = gradCard.gradient(state);
+
+  // Check 1: Sustained coercion
+  if (gradCard.coercionForce && gradCard.coercionForce.magnitude > 0) {
+    const COERCION_HALF_LIFE = 5000; // 5 seconds in milliseconds
+    const age = Date.now() - gradCard.coercionForce.timestamp;
+    if (age > COERCION_HALF_LIFE && gradCard.coercionForce.magnitude > 0.1) {
+      failures.push({
+        code: GradientFailureRegistry.SUSTAINED_COERCION.code,
+        message: GradientFailureRegistry.SUSTAINED_COERCION.message,
+        severity: GradientFailureRegistry.SUSTAINED_COERCION.severity,
+      });
+    }
+  }
+
+  // Check 2: Hidden basins (no escape route)
+  const EPSILON = 1e-6;
+  const localGradNorm = Math.sqrt(grad.reduce((s, g) => s + g * g, 0));
+  if (localGradNorm < EPSILON) {
+    failures.push({
+      code: GradientFailureRegistry.HIDDEN_BASIN.code,
+      message: GradientFailureRegistry.HIDDEN_BASIN.message,
+      severity: GradientFailureRegistry.HIDDEN_BASIN.severity,
+    });
+  }
+
+  return failures;
+}
