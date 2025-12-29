@@ -1,12 +1,11 @@
-export type CardManifest = {
-  id: string;
-  title: string;
-  tagline: string;
-  tags: string[];
-  badges?: string[];
-  inputSchema?: string[];
-  semanticDescriptor?: string;
-};
+/**
+ * Card Registry
+ *
+ * Canonical index of all implemented ζ-cards.
+ * This is the single source of truth for card metadata, invariants, and failure modes.
+ *
+ * The README is a projection of this registry, not an independent source.
+ */
 
 export type CardQueryResult = {
   manifest: CardManifest;
@@ -29,138 +28,184 @@ function dot(a: number[], b: number[]) {
   for (let i = 0; i < Math.min(a.length, b.length); i++) s += a[i] * b[i];
   return s;
 }
+import { CardID, CardMeta, CardFailure } from "./cardContract";
 
-function cosine(a: number[], b: number[]) {
-  return dot(a, b) / (Math.sqrt(dot(a, a)) * Math.sqrt(dot(b, b)) || 1);
+export interface CardRegistryEntry {
+  id: CardID;
+  meta: CardMeta;
+  implementationPath: string; // relative path to the card implementation
+  invariants: string[]; // human-readable invariants
+  failureModes: CardFailure[]; // observable failure states
+  docstring?: string; // optional extended description
 }
 
-// Example manifests: include the SpectralHeartbeat and the Omnibox itself
-export const manifests: CardManifest[] = [
-  {
-    id: 'ζ.card.spectral.heartbeat',
-    title: 'Normalized Spectral Heartbeat',
-    tagline: 'A scale-invariant heartbeat extracted from a field\'s spectral identity.',
-    tags: ['spectrum', 'heartbeat', 'normalize', 'zeta'],
-    badges: ['UI', 'Read-only'],
-    inputSchema: ['time-series', 'spectrum'],
-    semanticDescriptor:
-      'Identity lives in direction, not amplitude. Normalize spectral vectors and compare angular change.',
+/**
+ * Global card registry.
+ * All cards must be registered here to be discoverable.
+ */
+export const CardRegistry: Record<CardID, CardRegistryEntry> = {
+  "ζ.card.contract.core": {
+    id: "ζ.card.contract.core",
+    meta: {
+      title: "Card Contract",
+      description: "Minimal object grammar for cards: routable, indexable, activatable, introspectable",
+      tags: ["system", "contract", "foundation"],
+    },
+    implementationPath: "src/cardContract.ts",
+    invariants: [
+      "Stable Identity: id is globally unique and stable across sessions",
+      "Separability of Model and View: cards exist independently of React components",
+      "Inspectable Semantics: cards declare inputs, outputs, and failure modes",
+      "Activation is Explicit: only activate() makes a card active",
+    ],
+    failureModes: [
+      { code: "missing_id", message: "Card has no stable ID", severity: "error" },
+      { code: "non_reversible_route", message: "Router cannot encode/decode ID losslessly", severity: "error" },
+      { code: "view_owns_state", message: "View mutates state without routing through card model", severity: "error" },
+      { code: "activation_side_effect_only", message: "Activation only changes UI, not runtime state", severity: "error" },
+    ],
+    docstring: "All other cards must satisfy this contract. It is itself a card: meta-semantic.",
   },
-  {
-    id: 'ζ.card.ui.omnibox',
-    title: 'Omnibox',
-    tagline: 'Universal command/search box that surfaces cards by meaning.',
-    tags: ['ui', 'search', 'router', 'semantic'],
-    badges: ['UI', 'Tool'],
-    inputSchema: ['text', 'url', 'json'],
-    semanticDescriptor: 'Produce query vector and retrieve semantic cards by meaning.',
-  },
-  {
-    id: 'ζ.card.theory.gi.flow',
-    title: 'GI Flow Topology Theory',
-    tagline: 'Functional GI disorders as misaligned pressure, gas, and water directional vectors.',
-    tags: ['physiology', 'gradient', 'flow', 'microbiome', 'dynamical-systems', 'topology'],
-    badges: ['Theory', 'Computable Ontology', 'Mathematical'],
-    inputSchema: ['posture', 'breathing', 'transit-time', 'gas-location', 'water-distribution'],
-    semanticDescriptor:
-      'Health emerges when pressure, gas, and water flow downstream in coordinated vectors. Pathology arises from inverted, segmented, or decoupled gradients. Microbiota are operators on the GI field topology.',
-  },
-  {
-    id: 'π.clock.timer',
-    title: 'π-Clock Timer',
-    tagline: 'Set your π-clock like a spy gadget—dial the watch and the universe snaps into that file.',
-    tags: ['pi', 'clock', 'deterministic', 'signature', 'oracle', 'cryptography'],
-    badges: ['Tool', 'Generator', 'Spy-Mode'],
-    inputSchema: ['dial', 'file-tag', 'channel'],
-    semanticDescriptor:
-      'π as infinite master tape. Choose dial (phase + tempo) and file lock to generate unique, deterministic signatures. Same setting forever produces same worldline.',
-  },
-];
-// precompute static registry vectors (used as fallback)
-const staticRegistry = manifests.map((m) => ({
-  manifest: m,
-  vec: textToVector((m.semanticDescriptor || m.title) + ' ' + (m.tags || []).join(' ')),
-}));
 
-// Dynamic registry populated from repo (if available)
-let dynamicRegistry: {manifest: CardManifest; vec: number[]}[] | null = null;
+  "ζ.card.omni": {
+    id: "ζ.card.omni",
+    meta: {
+      title: "Omnicard",
+      description: "Zero-dimensional attractor: system overview, index, recents, invocation interface",
+      tags: ["system", "attractor", "index"],
+    },
+    implementationPath: "src/cards/omnicard.ts",
+    invariants: [
+      "Always resolvable: no external dependencies",
+      "Always renderable: complete semantic coverage",
+      "Query resolution: select(query) → CardID | null",
+    ],
+    failureModes: [], // Omnicard is always healthy
+    docstring: "Home is not a page; it is Card Zero. The Omnicard is the system's entry point and semantic index.",
+  },
 
-export async function refreshRegistryFromRepo(){
-  dynamicRegistry = null;
-  try{
-    // lazy import to avoid cycles
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { repo } = require('./zetaRepo');
-    if(!repo) return;
-    const head = await repo.readRef('refs/heads/main');
-    if(!head) return;
-    const commit = await repo.readCommit(head);
-    const tree = await repo.readTree(commit.tree);
-    const items: {manifest: CardManifest; vec: number[]}[] = [];
-    for(const p of Object.keys(tree)){
-      // look for manifest files under cards/
-      if(/^cards\/.+\/manifest\.json$/.test(p)){
-        try{
-              const blobOid = tree[p].oid;
-              const content = (await repo.readBlob(blobOid)).toString('utf8');
-          const parsed = JSON.parse(content);
-          const m: CardManifest = {
-            id: parsed.id || parsed.cardKey || p,
-            title: parsed.title || parsed.id || p,
-            tagline: parsed.tagline || '',
-            tags: parsed.tags || [],
-            badges: parsed.badges || [],
-            inputSchema: parsed.inputSchema || [],
-            semanticDescriptor: parsed.semanticDescriptor || (parsed.title || parsed.id || ''),
-          };
-          const vec = textToVector((m.semanticDescriptor || m.title) + ' ' + (m.tags || []).join(' '));
-          items.push({manifest:m, vec});
-        }catch(e){}
-      }
+  "ζ.card.spectral.heartbeat": {
+    id: "ζ.card.spectral.heartbeat",
+    meta: {
+      title: "Spectral Heartbeat",
+      description: "Normalized spectral vector with angular change detection validator",
+      tags: ["spectral", "deterministic", "validator"],
+    },
+    implementationPath: "src/zetacard.ts",
+    invariants: [
+      "Normalized spectral identity: zeta vector carries multi-scale energy",
+      "Deterministic operator T: diffusion + unsharp mask, reproducible state",
+      "Angular change detection: semantic ticks when angle exceeds threshold",
+      "Attractor modes: smooth morphism between parameter sets",
+    ],
+    failureModes: [
+      { code: "flat_spectrum", message: "Spectral energy too uniform; no dominant modes", severity: "warn" },
+    ],
+    docstring: "Reference implementation of ZetaCardContract. Demonstrates state ownership, activation, and failure introspection.",
+  },
+
+  "ζ.card.readme": {
+    id: "ζ.card.readme",
+    meta: {
+      title: "README Card",
+      description: "Self-healing documentation: introspects card registry and validates README consistency",
+      tags: ["system", "documentation", "validator"],
+    },
+    implementationPath: "src/cards/readmeCard.ts",
+    invariants: [
+      "README is a projection of CardRegistry, not independent prose",
+      "Drift detection: surface when README diverges from actual cards",
+      "Auto-generation: can generate sections from card metadata",
+    ],
+    failureModes: [
+      { code: "missing_card_docs", message: "README missing documentation for registered card", severity: "warn" },
+      { code: "undocumented_card", message: "Card exists but not in registry", severity: "error" },
+      { code: "stale_docs", message: "README references removed or renamed cards", severity: "warn" },
+    ],
+    docstring: "Makes README consistent and non-hallucinating. The Omnicard can surface README health.",
+  },
+};
+
+/**
+ * List all registered cards.
+ */
+export function listCards(): CardRegistryEntry[] {
+  return Object.values(CardRegistry);
+}
+
+/**
+ * Get a card by ID.
+ */
+export function getCard(id: CardID): CardRegistryEntry | null {
+  return CardRegistry[id] || null;
+}
+
+/**
+ * Generate a README section for a single card.
+ */
+export function generateCardSection(entry: CardRegistryEntry): string {
+  const invariantsList = entry.invariants
+    .map((inv) => `   - **${inv.split(":")[0]}**: ${inv.split(":").slice(1).join(":").trim()}`)
+    .join("\n");
+
+  const failuresHeader =
+    entry.failureModes.length > 0 ? "\n\n**Failure Modes:**\n" : "\n\n*Always healthy.*\n";
+
+  const failuresList = entry.failureModes
+    .map((fm) => `   - \`${fm.code}\` — ${fm.message} (${fm.severity || "info"})`)
+    .join("\n");
+
+  return `## ζ-Card: ${entry.meta.title}
+
+**ID:** \`${entry.id}\`  
+**Path:** [${entry.implementationPath}](${entry.implementationPath})
+
+${entry.meta.description}
+
+### Invariants
+
+${invariantsList}
+
+### Failure Modes
+
+${failuresHeader}${failuresList}
+
+${entry.docstring ? `### Notes\n\n${entry.docstring}\n` : ""}
+`;
+}
+
+/**
+ * Generate the entire "Cards" section of the README.
+ */
+export function generateCardsSection(): string {
+  const sections = listCards().map(generateCardSection).join("\n---\n\n");
+  return `## ζ-Cards (Complete Registry)\n\n${sections}`;
+}
+
+/**
+ * Validate that a given markdown string contains all registered cards.
+ * Returns a list of drift issues.
+ */
+export interface ReadmeDriftIssue {
+  type: "missing_card" | "undocumented_card" | "incomplete_docs";
+  cardId: CardID;
+  message: string;
+}
+
+export function validateReadmeAgainstRegistry(readmeContent: string): ReadmeDriftIssue[] {
+  const issues: ReadmeDriftIssue[] = [];
+  const cards = listCards();
+
+  for (const card of cards) {
+    // Check if card is mentioned in README
+    if (!readmeContent.includes(card.id)) {
+      issues.push({
+        type: "missing_card",
+        cardId: card.id,
+        message: `README missing documentation for ${card.id}`,
+      });
     }
-    if(items.length>0) dynamicRegistry = items;
-  }catch(e){
-    // ignore repo read errors and leave dynamicRegistry null
   }
-}
 
-// initial attempt to populate dynamic registry at module load (async)
-(async ()=>{ try{ await refreshRegistryFromRepo(); }catch(e){} })();
-
-// Auto-refresh when the repo emits commits or ref updates (autoreg).
-if (typeof globalThis !== 'undefined' && typeof globalThis.window !== 'undefined') {
-  // Browser environment - skip repo integration
-} else {
-  try{
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { repo } = require('./zetaRepo');
-    if(repo && typeof repo.on === 'function'){
-      repo.on('ref-update', async (ref:string, oid:string)=>{
-        try{ if(ref === 'refs/heads/main') await refreshRegistryFromRepo(); }catch(e){}
-      });
-      repo.on('commit', async (oid:string, commit:any)=>{
-        try{ await refreshRegistryFromRepo(); }catch(e){}
-      });
-    }
-  }catch(e){}
-}
-
-export function queryCards(q: string, max = 10) {
-  const registry = dynamicRegistry || staticRegistry;
-  const qv = textToVector(q);
-  const scored = registry.map((r) => ({
-    manifest: r.manifest,
-    score: cosine(qv, r.vec),
-  }));
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, max);
-}
-
-export function detectFacets(input: string) {
-  const facets: string[] = [];
-  if (/^https?:\/\//.test(input)) facets.push('url');
-  try { JSON.parse(input); facets.push('json'); } catch (e) {}
-  if (/\d{4}-\d{2}-\d{2}/.test(input)) facets.push('date');
-  if (/^[\d,\s]+$/.test(input)) facets.push('number-series');
-  return facets;
+  return issues;
 }
