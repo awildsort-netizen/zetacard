@@ -1,27 +1,20 @@
-import React, {useEffect, useRef, useState} from 'react';
-import {queryCards, detectFacets, refreshRegistryFromRepo, type CardQueryResult} from '../cardRegistry';
-import { eventLog } from '../instrumentation';
-
-export default function Omnibox({onInvoke, open: externalOpen, onOpenChange}:{onInvoke?:(id:string, mode:'SafeRun'|'Run', card:CardQueryResult)=>void, open?:boolean, onOpenChange?:(open:boolean)=>void}){
 import React, { useEffect, useRef, useState } from 'react';
-import { CardRegistry, listCards, CardRegistryEntry } from '../cardRegistry';
-import { Omnicard } from '../cards/omnicard';
+import { listCards, CardRegistryEntry, type CardQueryResult } from '../cardRegistry';
 import { eventLog } from '../instrumentation';
 
 interface OmniboxProps {
-  onActivateCard?: (cardId: string, mode: 'SafeRun' | 'Run') => void;
+  onInvoke?: (id: string, mode: 'SafeRun' | 'Run', card: CardQueryResult) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  omnicard?: Omnicard;
 }
 
 /**
  * Omnibox: Semantic invocation interface.
  *
- * Rewritten to use CardRegistry directly.
+ * Uses CardRegistry directly.
  * Activates cards by semantic reference, not search.
  */
-export default function Omnibox({ onActivateCard, open: externalOpen, onOpenChange, omnicard }: OmniboxProps) {
+export default function Omnibox({ onInvoke, open: externalOpen, onOpenChange }: OmniboxProps) {
   const [localOpen, setLocalOpen] = useState(true);
   const open = externalOpen !== undefined ? externalOpen : localOpen;
   const setOpen = (value: boolean) => {
@@ -33,7 +26,6 @@ export default function Omnibox({ onActivateCard, open: externalOpen, onOpenChan
   };
 
   const [q, setQ] = useState('');
-  const [results, setResults] = useState<CardQueryResult[]>([]);
   const [results, setResults] = useState<CardRegistryEntry[]>([]);
   const [sel, setSel] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -133,21 +125,22 @@ export default function Omnibox({ onActivateCard, open: externalOpen, onOpenChan
 
     const flowId = eventLog.startFlow();
     eventLog.emit({ type: 'CARD_SELECTED', cardId: card.id, cardTitle: card.meta.title, flowId });
-    eventLog.emit({ type: 'CARD_ACTIVATED', cardId: card.id, mode, flowId });
+    eventLog.emit({ type: 'CARD_OPENED', cardId: card.id, mode, flowId });
 
-    // Update omnicard recents
-    if (omnicard) {
-      omnicard.addRecent(card.id);
-    }
+    // Convert CardRegistryEntry to CardQueryResult format expected by App
+    const cardQueryResult: CardQueryResult = {
+      manifest: {
+        title: card.meta.title,
+        tagline: card.meta.description,
+        semanticDescriptor: card.docstring || '',
+        description: card.meta.description,
+        tags: card.meta.tags,
+      },
+      score: 1.0,
+    };
 
     // Notify parent
-    onActivateCard?.(card.id, mode);
-  };
-
-  const thumbnailColor = (id: string) => {
-    let h = 0;
-    for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
-    return `hsl(${h} 65% 45%)`;
+    onInvoke?.(card.id, mode, cardQueryResult);
   };
 
   return (

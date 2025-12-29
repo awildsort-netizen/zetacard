@@ -101,7 +101,7 @@ export const CardFailureRegistry = {
  * Helper to check if a card is properly contracted.
  * Use this for introspection and validation.
  */
-export function validateCardContract(card: any): CardFailure[] {
+export function validateCardContract(card: ZetaCardContract): CardFailure[] {
   const failures: CardFailure[] = [];
 
   if (!card.id || typeof card.id !== "string") {

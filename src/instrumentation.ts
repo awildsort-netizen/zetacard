@@ -99,7 +99,7 @@ class EventLog {
   }
 
   getEventsByFlowId(flowId: string): ZetacardEvent[] {
-    return this.events.filter(e => (e as any).flowId === flowId);
+    (this.listeners[ev]||[]).filter(e => (e as {flowId?: string}).flowId === flowId);
   }
 
   getEventsSinceByType(type: string, sinceIndex: number = 0): ZetacardEvent[] {
@@ -146,6 +146,7 @@ export const eventLog = new EventLog();
 
 // Expose to window for test access
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).__zetacard__ = {
     version: VERSION,
     buildId: BUILD_ID,
