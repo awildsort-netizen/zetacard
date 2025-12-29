@@ -124,23 +124,33 @@ Fixes #456
 
 2. **Make changes** following our [Coding Standards](#coding-standards)
 
-3. **Write/update tests**
+3. **Quick check** as you work
+   ```bash
+   npm run check:quick
+   ```
+
+4. **Write/update tests**
    ```bash
    npm run test:watch
    ```
 
-4. **Lint your code**
+5. **Lint your code**
    ```bash
    npm run lint:fix
    ```
 
-5. **Commit your changes**
+6. **Full validation** before pushing
+   ```bash
+   npm run check:full
+   ```
+
+7. **Commit your changes**
    ```bash
    git add .
    git commit -m "feat(scope): description"
    ```
 
-6. **Push and create PR**
+8. **Push and create PR**
    ```bash
    git push origin feature/your-feature
    ```

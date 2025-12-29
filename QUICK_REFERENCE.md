@@ -25,10 +25,20 @@ npm run test             # Run tests once
 npm run test:watch       # Watch mode
 npm run test:ui          # Visual test UI
 npm run test:e2e         # End-to-end tests
+npm run test:all         # Run all tests (unit + e2e)
 
 # Code Quality
 npm run lint             # Check code
 npm run lint:fix         # Auto-fix issues
+
+# Validation & Checks
+npm run validate:cards   # Validate all cards
+npm run validate:registry # Check registry consistency
+npm run check:quick      # Quick check (changed files only)
+npm run check:full       # Full pre-push validation
+
+# Documentation
+npm run docs:gen         # Generate documentation stats
 ```
 
 ---
