@@ -99,7 +99,7 @@ class EventLog {
   }
 
   getEventsByFlowId(flowId: string): ZetacardEvent[] {
-    (this.listeners[ev]||[]).filter(e => (e as {flowId?: string}).flowId === flowId);
+    return this.events.filter(e => (e as {flowId?: string}).flowId === flowId);
   }
 
   getEventsSinceByType(type: string, sinceIndex: number = 0): ZetacardEvent[] {

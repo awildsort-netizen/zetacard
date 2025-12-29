@@ -35,7 +35,7 @@ describe('Omnibox Card Flow', () => {
 
   test('Run button invokes card', async () => {
     render(<App />)
-    const input = screen.getByPlaceholderText(/Type or paste to find cards/i)
+    const input = screen.getByPlaceholderText(/Type card ID or name/i)
     
     fireEvent.change(input, { target: { value: 'spectral' } })
     
