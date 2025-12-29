@@ -12,7 +12,7 @@ import {
   validateGradientInvariant,
   ZetaGradientCardContract,
 } from "../cardContract";
-import { CardRegistry, CardRegistryEntry } from "../cardRegistry";
+import { CardRegistry } from "../cardRegistry";
 
 // ============================================================================
 // Validation Results
