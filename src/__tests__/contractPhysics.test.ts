@@ -12,7 +12,6 @@ import {
   grad_phi_c,
   force_c,
   boundedForce,
-  accelMagnitude,
   scoreAgent,
   classifyOrbit,
   DEFAULT_PHI_PARAMS,

@@ -10,11 +10,12 @@ let crypto: any = null;
 
 if (isNode) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // Dynamic require needed for Node.js compatibility
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, no-restricted-globals
     fs = require('fs/promises');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, no-restricted-globals
     path = require('path');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-var-requires, no-restricted-globals
     crypto = require('crypto');
   } catch(e) {
     // Not in Node.js or modules not available
@@ -30,9 +31,10 @@ let isogit: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let nodeFS: any = null;
 try{
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // Dynamic require needed for optional dependency
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, no-restricted-globals
   isogit = require('isomorphic-git');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  // eslint-disable-next-line @typescript-eslint/no-var-requires, no-restricted-globals
   nodeFS = require('fs');
   hasIsogit = !!isogit && !!nodeFS;
 }catch(e){ 
