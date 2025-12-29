@@ -124,6 +124,34 @@ export const CardRegistry: Record<CardID, CardRegistryEntry> = {
     ],
     docstring: "Makes README consistent and non-hallucinating. The Omnicard can surface README health.",
   },
+
+  "ζ.card.sun-contract": {
+    id: "ζ.card.sun-contract",
+    meta: {
+      title: "Sun Contract",
+      description: "Unbounded source with bounded couplings: models capacity + demand with safety invariants",
+      tags: ["contract", "safety", "capacity", "asymmetric"],
+    },
+    implementationPath: "src/cards/sunContract.ts",
+    invariants: [
+      "Unbounded source safety: S(t) may be ∞; interfaces are bounded",
+      "Capped absorption: A_a(t) ≤ cap_a(t) (hard limit per cycle)",
+      "Bounded ramping: |dA_a/dt| ≤ ρ_a (gradual exposure only)",
+      "Cumulative dose budget: D_a = ∫ max(0, A_a - P_a) dt ≤ B_a",
+      "Externality audit: X_a(t) = β₁A_a + β₂|∇A_a| + β₃dependency ≤ Ξ_a",
+      "Shielding control: exposure ramp dc_a/dt ≤ r_a (no instant full blast)",
+    ],
+    failureModes: [
+      { code: "cap_exceeded", message: "Agent intake exceeded safety cap in one cycle", severity: "error" },
+      { code: "ramp_exceeded", message: "Intake rate of change too steep (exposure change too fast)", severity: "warn" },
+      { code: "dose_exceeded", message: "Cumulative dose budget exhausted (burnout threshold)", severity: "error" },
+      { code: "externality_exceeded", message: "Cumulative harm/dependency metric exceeded", severity: "warn" },
+      { code: "sun_contract_violation", message: "Recent safety violations detected", severity: "error" },
+      { code: "dose_budget_warning", message: "Agent approaching dose budget limit (>70%)", severity: "warn" },
+    ],
+    docstring:
+      "The core insight: unbounded source + bounded couplings = safety. Even with infinite demand, safety is enforced by capping intake per cycle, limiting how fast exposure can change, tracking cumulative harm (dose), and auditing side effects (externalities). Agents couple to the sun contract and the contract tracks their health. Used for capacity planning, dependency prevention, and power-asymmetry mitigation.",
+  },
 };
 
 /**
