@@ -16,7 +16,12 @@
     "test:e2e:ui": "playwright test --ui",
     "test:all": "npm run test && npm run test:e2e",
     "lint": "eslint src --ext .ts,.tsx",
-    "lint:fix": "eslint src --ext .ts,.tsx --fix"
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "validate:cards": "bash scripts/validate-cards.sh",
+    "validate:registry": "npm run test src/__tests__/cardValidation.test.ts",
+    "check:quick": "bash scripts/quick-check.sh",
+    "check:full": "bash scripts/pre-push.sh",
+    "docs:gen": "bash scripts/gen-docs.sh"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

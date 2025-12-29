@@ -179,6 +179,14 @@ export class ApprovalQueueCard implements ZetaGradientCardContract<ApprovalQueue
         timestamp: Date.now(),
         expectedDecay: "linear",
       };
+    } else {
+      // Good field: minimal or no coercion needed
+      const currentGradient = this.gradient(this.state)[0];
+      this.coercionForce = {
+        magnitude: Math.max(0, currentGradient - 0.5), // Much lower with good field
+        timestamp: Date.now(),
+        expectedDecay: "exponential",
+      };
     }
 
     // Process items
@@ -221,9 +229,10 @@ export class ApprovalQueueCard implements ZetaGradientCardContract<ApprovalQueue
   reshapeField(delta: PotentialModifier) {
     if (delta.name === "add_parallel_approvers") {
       this.state.parallelApprovers += delta.magnitude;
+      this.useGoodField = true; // Switching to good field after adding infrastructure
       return {
         success: true,
-        newPotential: (state) => potentialGood(state),
+        newPotential: (state: ApprovalQueueState) => potentialGood(state),
         reason: `Added ${delta.magnitude} approvers`,
       };
     }
@@ -233,9 +242,10 @@ export class ApprovalQueueCard implements ZetaGradientCardContract<ApprovalQueue
         1,
         this.state.automationCoverage + delta.magnitude
       );
+      this.useGoodField = true; // Switching to good field after adding automation
       return {
         success: true,
-        newPotential: (state) => potentialGood(state),
+        newPotential: (state: ApprovalQueueState) => potentialGood(state),
         reason: `Automated ${delta.magnitude * 100}% of routine cases`,
       };
     }
@@ -244,7 +254,7 @@ export class ApprovalQueueCard implements ZetaGradientCardContract<ApprovalQueue
       this.useGoodField = true;
       return {
         success: true,
-        newPotential: (state) => potentialGood(state),
+        newPotential: (state: ApprovalQueueState) => potentialGood(state),
         reason: "Switched to field-work model",
       };
     }
