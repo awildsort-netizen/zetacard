@@ -25,6 +25,16 @@ import {
 } from './geometry';
 
 /**
+ * Numerical epsilon for stability checks
+ */
+const NUMERICAL_EPSILON = 1e-12;
+
+/**
+ * Default membrane detection tolerance (configurable based on system scale)
+ */
+const DEFAULT_MEMBRANE_TOLERANCE = 0.01;
+
+/**
  * Localized membrane stress-energy in spacetime
  * 
  * T_μν^(Σ)(x) = ∫_Σ d³y √(-h) S_ab(y) e_a^μ e_b^ν δ⁴(x - X(y))
@@ -73,7 +83,7 @@ export function membraneStressInBulk(
 function isOnMembrane(
   coords: Coordinates,
   membraneCoords: Coordinates,
-  tolerance: number = 0.1
+  tolerance: number = DEFAULT_MEMBRANE_TOLERANCE
 ): boolean {
   let dist2 = 0;
   for (let i = 0; i < Math.min(coords.length, membraneCoords.length); i++) {

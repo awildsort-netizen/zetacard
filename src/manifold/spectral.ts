@@ -20,7 +20,10 @@ import { extrinsicCurvatureSquared } from './geometry';
  * Compute FFT of a real-valued signal
  * 
  * Simplified DFT implementation (O(n²))
- * For production, would use FFT library
+ * 
+ * NOTE: For production use with large datasets, consider integrating
+ * a proper FFT library (e.g., fft.js, fftw.js) for O(n log n) complexity.
+ * This implementation is adequate for small-scale analysis and testing.
  */
 export function simpleDFT(signal: number[]): { real: number[]; imag: number[] } {
   const N = signal.length;

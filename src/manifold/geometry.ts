@@ -11,6 +11,11 @@
 import type { Metric, Tensor, Vec, ExtrinsicCurvature } from './types';
 
 /**
+ * Numerical epsilon for stability checks
+ */
+const NUMERICAL_EPSILON = 1e-12;
+
+/**
  * Compute determinant of a metric tensor
  * Uses LU decomposition for numerical stability
  */
@@ -36,7 +41,7 @@ export function metricDeterminant(g: Metric): number {
       det *= -1;
     }
     
-    if (Math.abs(A[i][i]) < 1e-12) {
+    if (Math.abs(A[i][i]) < NUMERICAL_EPSILON) {
       return 0; // Singular matrix
     }
     
@@ -74,7 +79,7 @@ export function metricInverse(g: Metric): Metric {
     
     [A[i], A[maxRow]] = [A[maxRow], A[i]];
     
-    if (Math.abs(A[i][i]) < 1e-12) {
+    if (Math.abs(A[i][i]) < NUMERICAL_EPSILON) {
       throw new Error('Metric is singular and cannot be inverted');
     }
     
@@ -352,8 +357,8 @@ export function normalizeVector(v: Vec, g: Metric): Vec {
   const norm2 = lowerIndex(v, g).reduce((sum, vi, i) => sum + vi * v[i], 0);
   const norm = Math.sqrt(Math.abs(norm2));
   
-  if (norm < 1e-12) {
-    throw new Error('Cannot normalize zero vector');
+  if (norm < NUMERICAL_EPSILON) {
+    throw new Error(`Cannot normalize vector with norm ${norm} (< ${NUMERICAL_EPSILON})`);
   }
   
   return v.map(vi => vi / norm);
@@ -365,7 +370,7 @@ export function normalizeVector(v: Vec, g: Metric): Vec {
 export function vectorType(v: Vec, g: Metric): 'timelike' | 'spacelike' | 'null' {
   const norm2 = lowerIndex(v, g).reduce((sum, vi, i) => sum + vi * v[i], 0);
   
-  if (Math.abs(norm2) < 1e-12) return 'null';
+  if (Math.abs(norm2) < NUMERICAL_EPSILON) return 'null';
   if (norm2 < 0) return 'timelike'; // Minkowski signature (-,+,+,+)
   return 'spacelike';
 }

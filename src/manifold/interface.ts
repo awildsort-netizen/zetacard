@@ -236,6 +236,11 @@ export function membraneTemperature(
 }
 
 /**
+ * Numerical epsilon for stability checks
+ */
+const NUMERICAL_EPSILON = 1e-12;
+
+/**
  * Entropy evolution equation (first law)
  * 
  * ṡ = (Φ_in - Φ_out)/T_Σ - |∇s|²/T_Σ²
@@ -254,8 +259,8 @@ export function entropyEvolution(
   entropyGradient: Vec,
   h: Metric
 ): number {
-  if (temperature < 1e-12) {
-    throw new Error('Temperature too close to zero for entropy evolution');
+  if (temperature < NUMERICAL_EPSILON) {
+    throw new Error(`Temperature ${temperature} is too close to zero (< ${NUMERICAL_EPSILON}) for entropy evolution calculation`);
   }
   
   // First term: (Φ_in - Φ_out)/T_Σ

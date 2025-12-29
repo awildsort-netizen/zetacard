@@ -82,6 +82,12 @@ export interface IntegrationParams {
   
   /** Conservation check tolerance */
   conservationTolerance: number;
+  
+  /** Normal and tangent vectors configuration (optional override) */
+  geometry?: {
+    normal_phys: number[];
+    tangents: number[][];
+  };
 }
 
 /**
@@ -131,9 +137,9 @@ export function stepZetaEngine(
   
   // === Step 1: Compute energy fluxes ===
   
-  // Simplified normal and tangent vectors (would be computed from embedding)
-  const normal_phys: number[] = [1, 0, 0, 0]; // Timelike for simplicity
-  const tangents: number[][] = [
+  // Normal and tangent vectors (use configured or simplified default)
+  const normal_phys = params.geometry?.normal_phys || [1, 0, 0, 0];
+  const tangents = params.geometry?.tangents || [
     [0, 1, 0, 0],
     [0, 0, 1, 0],
     [0, 0, 0, 1]

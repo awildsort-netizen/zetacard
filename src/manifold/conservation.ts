@@ -103,8 +103,10 @@ export function checkConservation(
     dh
   );
   
-  // Extend to 4D (pad with 0 for time component)
-  const div_interface: number[] = [0, ...div_interface_3d];
+  // Extend to match dimension (pad with 0 for time component if needed)
+  const div_interface: number[] = dim > div_interface_3d.length 
+    ? [0, ...div_interface_3d]
+    : div_interface_3d;
   
   // Total should be zero
   const total: number[] = Array(dim).fill(0);

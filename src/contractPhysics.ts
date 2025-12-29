@@ -293,7 +293,7 @@ export function scoreAgent(
     
     // G-force: G_a = |a| / g_a
     const amag = accelMagnitude(a[k], agent.sigmaA);
-    const G = amag / Math.max(g, 1e-9); // avoid division by zero
+    const G = amag / Math.max(g, NUMERICAL_EPSILON); // avoid division by zero
     if (G > Gpeak) Gpeak = G;
     
     // Instantaneous harm: h_a = α*[G-G0]_+^p + β*[x6-θ6]_+^r

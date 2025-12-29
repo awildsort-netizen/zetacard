@@ -38,6 +38,11 @@ import {
 } from './interface';
 
 /**
+ * Numerical epsilon for stability checks
+ */
+const NUMERICAL_EPSILON = 1e-12;
+
+/**
  * Compute divergence of surface stress D_a S^ab
  * 
  * For discrete approximation:
@@ -149,7 +154,7 @@ export function entropyBalanceEquation(
   shearMagnitude: number,
   entropyAdvection: number
 ): number {
-  if (Math.abs(entropy) < 1e-12 || temperature < 1e-12) {
+  if (Math.abs(entropy) < NUMERICAL_EPSILON || temperature < NUMERICAL_EPSILON) {
     // Handle zero entropy or temperature case
     return 0;
   }
