@@ -8,8 +8,8 @@ interface SunContractVisualizerProps {
 export default function SunContractVisualizer({ sourceStrength = 5 }: SunContractVisualizerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const contractRef = useRef(new SunContract(sourceStrength));
-  const [agents, setAgents] = useState<Record<string, SunContractAgent>>({});
-  const [stats, setStats] = useState({
+  const [, setAgents] = useState<Record<string, SunContractAgent>>({});
+  const [, setStats] = useState({
     fieldEnergy: 0,
     totalViolations: 0,
     zeta: [1, 0, 0],

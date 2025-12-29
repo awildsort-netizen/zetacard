@@ -35,7 +35,6 @@ import {
   CardMeta,
   CardFailure,
   CardActivationContext,
-  CardFailureRegistry,
 } from "../cardContract";
 
 /**
@@ -552,11 +551,4 @@ export class SunContract implements ZetaCardContract<SunContractState> {
       (v) => v.type === "mask_violated" && v.time > now - timeWindowMs
     );
   }
-}
-
-/**
- * Helper: sigmoid for saturating behavior
- */
-function sigmoid(x: number): number {
-  return 1 / (1 + Math.exp(-x));
 }
