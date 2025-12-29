@@ -164,15 +164,26 @@ No artificial machinery. No forced integration.
 
 ## The Principle This Demonstrates
 
-**Organic Integration**: When you let physics guide the design, the architecture unfolds naturally.
+**Organic Integration & Geometric Maturity**: Phase 3 crossed from mechanics to spacetime.
 
-- We didn't force CF integration into Phase 3.
-- We simply moved the interface (as physics dictates).
-- Tests confirm expected behavior.
-- CF pathway appears organically.
-- Phase 3 → Phase 4 → Phase 5 feels inevitable.
+What appeared as "just add interface motion" was actually deeper:
+- **x_b as primary state** (not grid index): Now you have a worldline, not a bookkeeping value
+- **Intrinsic clocks** (dτ/dt from metric): The interface doesn't just move; it experiences geometry
+- **Weak enforcement** (penalty junctions): Numerically stable path to strong coupling
+- **θ as diagnostic** (not sacred scalar): Curvature detection without claiming exactness
 
-**This is the opposite of forced integration.**
+This is the architectural point where toy PDE solvers become **spacetime systems**.
+
+**Why this matters for Phase 5**:
+- You already have a dynamically coupled geometry
+- The moving observer's clock is intrinsic to the geometry
+- "Events" can now be geometric facts, not heuristics
+- CF extraction will *discover* rather than *force*
+
+**Why this is mature design**:
+- The tests encode real behavioral invariants, not assertion busy-work
+- Phase 4 can strengthen coupling without rethinking Phase 3
+- Phase 5 will feel almost inevitable because the substrate is already built
 
 ---
 

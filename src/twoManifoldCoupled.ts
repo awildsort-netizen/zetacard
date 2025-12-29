@@ -256,10 +256,28 @@ function computeRhoRHS(bulk: DilatonGRState, dx: number): Vec {
  *
  * Returns: ∂_t(X_dot) = ∂_x²(X) + 8π·T₀₀
  */
-function computeXRHS(bulk: DilatonGRState, dx: number, matterStress: Vec): Vec {
+function computeXRHS(
+  bulk: DilatonGRState,
+  dx: number,
+  matterStress: Vec,
+  iface?: InterfaceState
+): Vec {
   const { X } = bulk;
   const laplacian_X = laplacian(X, dx);
   const source = matterStress.map(t => 8 * Math.PI * t);
+  
+  // Phase 4b: Add interface stress-energy feedback
+  // Interface entropy acts as scalar stress-energy on the bulk geometry
+  if (iface) {
+    const T00_iface = zeros(X.length);
+    const i_b = iface.x_b_index;
+    if (i_b >= 0 && i_b < X.length) {
+      T00_iface[i_b] += iface.s;  // entropy as scalar stress
+    }
+    const iface_source = T00_iface.map(t => 8 * Math.PI * t);
+    return add(add(laplacian_X, source), iface_source);
+  }
+  
   return add(laplacian_X, source);
 }
 
@@ -348,6 +366,25 @@ function computeProperTimeRate(rho_at_xb: number, v_b: number): number {
 }
 
 /**
+ * Compute junction residual (Phase 4a diagnostic).
+ *
+ * Measures violation of the junction condition:
+ *   J(t) = [∂_x X]_{x_b} - 8π E_Σ(s)
+ *
+ * Lower J_rms over time indicates better enforcement.
+ * Increasing λ_jump should reduce J_rms.
+ *
+ * @param X_x_at_xb The spatial derivative of X sampled at interface
+ * @param s Interface entropy
+ * @returns Junction residual J
+ */
+function computeJunctionResidual(X_x_at_xb: number, s: number): number {
+  const target_jump = 8 * Math.PI * s;
+  const actual_jump = X_x_at_xb;
+  return actual_jump - target_jump;
+}
+
+/**
  * Interface worldline RHS derivatives (Phase 3).
  *
  * Computes time derivatives for:
@@ -394,9 +431,10 @@ function computeInterfaceRHS(
   const F_flux = lambda_flux * energy_flux;
 
   // Penalty term: nudge toward junction condition [∂_x X] = 8π E_Σ(s)
+  // Phase 4a: Strengthened from 0.01 to 0.1 for better enforcement
   const target_jump = 8 * Math.PI * s;
   const actual_jump = X_x_at_xb;
-  const F_junction = 0.01 * (actual_jump - target_jump);
+  const F_junction = 0.1 * (actual_jump - target_jump);
 
   const m_eff = 1.0;
   const a_b = (F_flux + F_junction) / m_eff;
@@ -452,7 +490,7 @@ export function stepRK4(
 
     return {
       d_rho_dot: computeRhoRHS(b, dx),
-      d_X_dot: computeXRHS(b, dx, matterStress),
+      d_X_dot: computeXRHS(b, dx, matterStress, iface),  // Pass interface for Phase 4b feedback
       d_psi_dot: computePsiRHS(b, dx),
       d_tau: 1.0, // proper time synchronous with coordinate time
     };
