@@ -21,7 +21,6 @@ import {
   SMALL_TEAM_AGENT_PARAMS,
   type Vec,
   type PhiParams,
-  type AgentParams,
 } from './contractPhysics';
 
 // ============================================================================

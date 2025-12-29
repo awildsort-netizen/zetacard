@@ -85,10 +85,10 @@ test('click Close button -> returns to main view', async () => {
   const closeButton = screen.getByRole('button', { name: /Close \(Esc\)/i })
   fireEvent.click(closeButton)
 
-  // should return to main view with omnibox visible
+  // should return to main view (canvas visible)
   await waitFor(() => {
-    const inputs = screen.getAllByPlaceholderText(/Type or paste to find cards/i)
-    expect(inputs.length > 0).toBeTruthy()
+    const mainView = screen.getByTestId('main-view')
+    expect(mainView).toBeTruthy()
   }, { timeout: 2000 })
 })
 })
