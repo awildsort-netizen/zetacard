@@ -9,14 +9,14 @@ export class LocationManager {
 
   constructor(){ }
 
-  on(ev: string, cb: Function){ this.listeners[ev] = this.listeners[ev]||[]; this.listeners[ev].push(cb); }
-  off(ev: string, cb: Function){ if(!this.listeners[ev]) return; this.listeners[ev]=this.listeners[ev].filter(f=>f!==cb); }
-  emit(ev:string, ...args:any[]){ (this.listeners[ev]||[]).forEach(f=>{ try{ f(...args);}catch(e){} }); }
+  on(ev: string, cb: (...args: unknown[]) => void){ this.listeners[ev] = this.listeners[ev]||[]; this.listeners[ev].push(cb); }
+  off(ev: string, cb: (...args: unknown[]) => void){ if(!this.listeners[ev]) return; this.listeners[ev]=this.listeners[ev].filter(f=>f!==cb); }
+  emit(ev:string, ...args:unknown[]){ (this.listeners[ev]||[]).forEach(f=>{ try{ f(...args);}catch(e){ /* ignore listener errors */ } }); }
 
   async init(){
     try{
       await repo.init();
-    }catch(e){}
+    }catch(e){ /* ignore init errors */ }
     try{
       const head = await repo.readRef('refs/heads/main');
       this.currentCommit = head;
@@ -25,7 +25,9 @@ export class LocationManager {
 
     // subscribe to repo events to keep location live
     try{
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       if(typeof (repo as any).on === 'function'){
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (repo as any).on('ref-update', async (ref:string, oid:string)=>{
           // if HEAD changed, update current commit
           if(ref === 'refs/heads/main'){
@@ -33,12 +35,13 @@ export class LocationManager {
             this.emit('moved', {commit: this.currentCommit, path: this.currentPath});
           }
         });
-        (repo as any).on('commit', async (oid:string, commit:any)=>{
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (repo as any).on('commit', async (oid:string, commit:unknown)=>{
           // general commit: refresh knowledge
           this.emit('commit', {oid, commit});
         });
       }
-    }catch(e){}
+    }catch(e){ /* ignore subscription errors */ }
   }
 
   async here(): Promise<Location>{

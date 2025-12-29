@@ -7,6 +7,27 @@
  * The README is a projection of this registry, not an independent source.
  */
 
+export type CardQueryResult = {
+  manifest: CardManifest;
+  score: number;
+};
+
+// simple deterministic text->vector mapper for demo purposes
+function textToVector(text: string, dim = 16) {
+  const v = new Array(dim).fill(0);
+  for (let i = 0; i < text.length; i++) {
+    const c = text.charCodeAt(i);
+    v[(c + i) % dim] += 1;
+  }
+  const norm = Math.sqrt(v.reduce((s, x) => s + x * x, 0)) || 1;
+  return v.map((x) => x / norm);
+}
+
+function dot(a: number[], b: number[]) {
+  let s = 0;
+  for (let i = 0; i < Math.min(a.length, b.length); i++) s += a[i] * b[i];
+  return s;
+}
 import { CardID, CardMeta, CardFailure } from "./cardContract";
 
 export interface CardRegistryEntry {

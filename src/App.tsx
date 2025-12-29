@@ -1,12 +1,10 @@
 import React, {useEffect, useRef, useState} from "react";
 import {Card} from "./zetacard";
 import SpectralHeartbeat from "./components/SpectralHeartbeat";
-import GIFlowViewer from "./components/GIFlowViewer";
-import PiTimerCard from "./components/PiTimerCard";
 import Omnibox from "./components/Omnibox";
 import {Quadtree} from "./quadtree";
 import {sigmoid, cosine} from "./math";
-import { eventLog } from "./instrumentation";
+import type {CardQueryResult} from "./cardRegistry";
 
 const W=900, H=600;
 
@@ -40,7 +38,7 @@ export default function App(){
   const [resThresh,setResThresh] = useState(0.2);
   const [tickEpsilon, setTickEpsilon] = useState(0.15);
   const [activeCard, setActiveCard] = useState<string | null>(null);
-  const [activeCardData, setActiveCardData] = useState<any | null>(null);
+  const [activeCardData, setActiveCardData] = useState<CardQueryResult | null>(null);
   const qtRef = useRef(new Quadtree(0,0,1,1));
   const prevZetaA = useRef<number[] | undefined>(cardA.zeta.slice());
   const prevZetaB = useRef<number[] | undefined>(cardB.zeta.slice());
@@ -65,7 +63,9 @@ export default function App(){
       const nb = Math.sqrt(cb.reduce((s,x)=>s+x*x,0))*Math.sqrt((prevB.reduce((s,x)=>s+x*x,0)||1));
       const angB = Math.acos(Math.max(-1,Math.min(1, dotB/(nb||1))));
       setThetaA(angA); setThetaB(angB);
-    }catch(e){}
+    }catch(e){
+      // Ignore calculation errors in animation loop - use previous theta values
+    }
     // update prev refs after stepping (so previews compare last->current)
     prevZetaA.current = prevA;
     prevZetaB.current = prevB;

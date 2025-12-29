@@ -16,7 +16,9 @@ interface Organism {
 }
 
 export default function GIFlowViewer({ mode = 'overview' }: { mode?: 'overview' | 'bio-index' | 'equations' | 'schema' }) {
-  const [activeTab, setActiveTab] = useState<'overview' | 'bio-index' | 'schema' | 'interventions'>(mode as any || 'overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'bio-index' | 'schema' | 'interventions'>(
+    (mode === 'overview' || mode === 'bio-index' || mode === 'equations' || mode === 'schema') ? mode : 'overview'
+  );
   const [selectedOrganism, setSelectedOrganism] = useState<string | null>(null);
   const [filterZetaClass, setFilterZetaClass] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
