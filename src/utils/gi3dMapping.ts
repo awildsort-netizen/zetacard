@@ -1,6 +1,15 @@
 // Map organisms to positions along the GI tract based on their regional preferences
 // and create visual representations for the 3D scene
 
+interface OrganismInput {
+  id?: string;
+  commonName?: string;
+  scientificName?: string;
+  regional_expectation?: string;
+  zetaClass?: string;
+  abundance_healthy?: string;
+}
+
 export interface Organism3D {
   id: string;
   name: string;
@@ -58,7 +67,7 @@ function jitterPosition(
   ];
 }
 
-export function mapOrganismsTo3D(organisms: any[]): Organism3D[] {
+export function mapOrganismsTo3D(organisms: OrganismInput[]): Organism3D[] {
   return organisms.map((org, index) => {
     const region = org.regional_expectation || 'mixed';
     const basePos = REGION_POSITIONS[region as keyof typeof REGION_POSITIONS] || REGION_POSITIONS['mixed'];

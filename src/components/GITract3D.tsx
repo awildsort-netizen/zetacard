@@ -77,8 +77,7 @@ function GITractTube() {
     new THREE.Vector3(0, -3.2, 0),   // rectum
   ]);
 
-  const points = curve.getPoints(50);
-  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+  curve.getPoints(50);
 
   return (
     <group ref={groupRef}>
@@ -122,7 +121,6 @@ function GITractTube() {
 // Pressure field visualization (animated)
 function PressureField() {
   const groupRef = useRef<THREE.Group>(null);
-  const [time] = useState(0);
 
   return (
     <group ref={groupRef}>

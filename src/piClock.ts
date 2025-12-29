@@ -133,10 +133,9 @@ export function initPiClock(setting: PiClockSetting): PiClockState {
  * Returns the output digit(s) and updates state.
  */
 export function tickPiClock(
-  state: PiClockState,
-  numDigits: number = 1
+  state: PiClockState
 ): { digit: number; newState: PiClockState; trace?: string } {
-  const { phase, tempo, lensWidths, position, state: oldState } = state;
+  const { tempo, lensWidths, position, state: oldState } = state;
   const L = PI_DIGITS.length;
 
   // Read a window from π at current position
@@ -244,10 +243,11 @@ export function formatSignature(output: PiClockOutput, style: 'phone' | 'hex' | 
         return `(${d.substring(0, 3)}) ${d.substring(3, 6)}-${d.substring(6)}`;
       }
       return joined;
-    case 'hex':
+    case 'hex': {
       // Convert to hex
       const num = BigInt(joined);
       return '0x' + num.toString(16);
+    }
     case 'raw':
     default:
       return joined;

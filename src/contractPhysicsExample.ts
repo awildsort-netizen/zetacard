@@ -21,7 +21,6 @@ import {
   SMALL_TEAM_AGENT_PARAMS,
   type Vec,
   type PhiParams,
-  type AgentParams,
 } from './contractPhysics';
 
 // ============================================================================
@@ -260,12 +259,6 @@ const customPhiParams: PhiParams = {
   w: [3.0, 1.0, 2.5, 0.8, 1.2, 5.0, 0.8, 0.9], // Higher weight on money and outcomes
   C_cliff: 10.0, // Steeper legal cliff
   theta_legal: 0.7, // Lower legal threshold
-};
-
-const customAgentParams: AgentParams = {
-  ...DEFAULT_AGENT_PARAMS,
-  G0: 0.8, // Lower G-force tolerance
-  beta: 10.0, // Higher penalty for legal risk
 };
 
 const testState: Vec = [0.8, 0.6, 0.7, 0.6, 0.7, 0.75, 0.5, 0.6];

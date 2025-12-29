@@ -189,7 +189,7 @@ export default function App(){
   </div>);
 }
 
-function drawCardInfo(ctx:CanvasRenderingContext2D, rect:any, card:any, ambient?:number){
+function drawCardInfo(ctx:CanvasRenderingContext2D, rect:{ x: number; y: number; w: number; h: number }, card:Card, ambient?:number){
   const x = rect.x + 6, y = rect.y + 6;
   ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(x-4,y-4,150,98);
   ctx.fillStyle='white'; ctx.font='12px sans-serif';
