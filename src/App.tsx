@@ -83,21 +83,25 @@ export default function App(){
       const region = ctx.getImageData(overlap.x, overlap.y, overlap.w, overlap.h);
       const imgA = ctx.getImageData(overlap.x, overlap.y, overlap.w, overlap.h);
       // for simplicity reuse same region; compute weight
-      const w = sigmoid(alpha * cosine(cardA.zeta, cardB.zeta) + beta*(cardA.params.ambient - cardB.params.ambient));
+      const cosineContrib = alpha * cosine(cardA.zeta, cardB.zeta);
+      const ambientContrib = beta*(cardA.params.ambient - cardB.params.ambient);
+      const w = sigmoid(cosineContrib + ambientContrib);
       for(let i=0;i<region.data.length;i+=4){
         region.data[i] = w*imgA.data[i] + (1-w)*region.data[i];
         region.data[i+1] = w*imgA.data[i+1] + (1-w)*region.data[i+1];
         region.data[i+2] = w*imgA.data[i+2] + (1-w)*region.data[i+2];
       }
       ctx.putImageData(region, overlap.x, overlap.y);
-      // show weight
-      ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fillRect(overlap.x, overlap.y-22, 80,18);
-      ctx.fillStyle='#000'; ctx.fillText('w=' + w.toFixed(2), overlap.x+4, overlap.y-10);
+      // show weight and ambient influence
+      ctx.fillStyle='rgba(255,255,255,0.9)'; ctx.fillRect(overlap.x, overlap.y-40, 140,36);
+      ctx.fillStyle='#000'; ctx.font='11px sans-serif';
+      ctx.fillText('w=' + w.toFixed(2), overlap.x+4, overlap.y-24);
+      ctx.fillText('cos:' + cosineContrib.toFixed(2) + ' amb:' + ambientContrib.toFixed(2), overlap.x+4, overlap.y-10);
     }
 
     // draw UI overlays: band bars and zeta
-    drawCardInfo(ctx, rects[0], cardA);
-    drawCardInfo(ctx, rects[1], cardB);
+    drawCardInfo(ctx, rects[0], cardA, ambientA);
+    drawCardInfo(ctx, rects[1], cardB, ambientB);
   });
 
   useEffect(()=>{
@@ -185,9 +189,9 @@ export default function App(){
   </div>);
 }
 
-  function drawCardInfo(ctx:CanvasRenderingContext2D, rect:{x:number,y:number,w:number,h:number}, card:Card){
+function drawCardInfo(ctx:CanvasRenderingContext2D, rect:any, card:any, ambient?:number){
   const x = rect.x + 6, y = rect.y + 6;
-  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(x-4,y-4,150,78);
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(x-4,y-4,150,98);
   ctx.fillStyle='white'; ctx.font='12px sans-serif';
   // draw small bar graph for bands
   const bw=36, bh=8; let bx=x; for(let i=0;i<card.bandEnergy.length;i++){
@@ -197,6 +201,16 @@ export default function App(){
   }
   ctx.fillStyle='white'; ctx.fillText('bands: ' + card.bandEnergy.map(b=>b.toFixed(2)).join(','), x, y+26);
   ctx.fillText('zeta: ' + card.zeta.map(z=>z.toFixed(2)).join(','), x, y+44);
+  // ambient indicator bar
+  if(ambient !== undefined){
+    const ambientBarW = 100, ambientBarH = 6;
+    ctx.fillStyle='#333'; ctx.fillRect(x, y+58, ambientBarW, ambientBarH);
+    // color gradient: cool (low ambient) -> warm (high ambient)
+    const hue = 240 - ambient*180; // 240° (cool blue) to 60° (warm yellow)
+    ctx.fillStyle=`hsl(${hue}, 100%, 50%)`;
+    ctx.fillRect(x, y+58, Math.max(1, Math.floor(ambientBarW*ambient)), ambientBarH);
+    ctx.fillStyle='white'; ctx.font='11px sans-serif'; ctx.fillText(`ambient: ${ambient.toFixed(2)}`, x, y+74);
+  }
 }
 
 function getOverlap(a:{x:number,y:number,w:number,h:number},b:{x:number,y:number,w:number,h:number}){
