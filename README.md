@@ -14,6 +14,25 @@ Zetacard — Spectral-Dynamical VM prototype
 
 Open the app at http://127.0.0.1:5173
 
+## Documentation
+
+### Getting Started
+- **[Quick Reference](QUICK_REFERENCE.md)** — Fast lookup for common tasks
+- **[Contributing Guide](CONTRIBUTING.md)** — How to contribute to the project
+- **[Development Setup](DEVELOPMENT.md)** — Environment setup and troubleshooting
+- **[Testing Guide](TESTING.md)** — Testing strategies and best practices
+
+### Architecture
+- **[Architecture Decisions](docs/architecture/decisions/README.md)** — Why we made key design choices
+- **[Documentation Index](DOCUMENTATION_INDEX_V2.md)** — Complete map of all documentation
+
+### Key Topics
+- PowerShell execution policy fixes
+- Module system (ES6 only)
+- Available commands and scripts
+- Configuration files
+- Troubleshooting
+
 ## Conceptual Model
 
 Zetacard is organized around **semantic cards**, not pages.

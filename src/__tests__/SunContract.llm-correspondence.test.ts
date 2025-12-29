@@ -161,7 +161,7 @@ describe("SunContract: LLM Correspondence", () => {
       capMax: 1.0,
       capCurrent: 1.0, // can absorb 1.0 per step
       processingCapacity: 0.3, // but can only process 0.3
-      ramping: 0.5,
+      ramping: 1.5, // Allow fast ramping to full capacity
       doseBudget: 2.0, // cumulative dose limit
       exposure: 1.0,
       exposureRampRate: 1.0,
