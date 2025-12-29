@@ -115,24 +115,32 @@ export interface DilatonGRState {
 // ============================================================================
 
 /**
- * Interface worldline at x = x_b with proper time parametrization.
+ * Interface worldline at x = x_b with proper time parametrization (Phase 3).
  *
  * Observables:
  * - s: entropy density (integrated energy stored at interface)
  * - τ: proper time (worldline parameter)
- * - x_b: fixed interface position (grid index)
+ * - x_b_index: grid index (cached from x_b)
  *
- * Dynamics:
- *   ds/dτ = (Φ_in - κs) / T_Σ   (second law)
- *   dτ/dt = 1 (synchronous with coordinate time for now)
+ * Phase 3 dynamics (worldline moving in coordinate time t):
+ *   ∂_t x_b = v_b
+ *   ∂_t v_b = a_b (from energy flux + junction penalty)
+ *   ∂_t θ = log-derivative of proper-time rate (expansion scalar)
+ *   ds/dt = (Φ_in - κs) / T_Σ  (entropy evolution)
+ *   dτ/dt = e^ρ(x_b) * √(1 - v_b²)  (proper time clock)
  *
- * Junction condition:
- *   [∂_x X]_{x_b} = 8π E_Σ(s)   (dilaton gradient jump)
+ * Junction condition (soft):
+ *   [∂_x X]_{x_b} ≈ 8π E_Σ(s)  (enforced as penalty force, not hard constraint)
  */
 export interface InterfaceState {
   s: number; // entropy density (scalar)
-  x_b_index: number; // grid index of interface position
+  x_b_index: number; // cached grid index (updated from x_b)
   tau: number; // proper time (worldline parameter)
+  
+  // Phase 3: worldline dynamics
+  x_b: number; // physical position in [0, L]
+  v_b: number; // velocity ∂_t x_b
+  theta: number; // expansion scalar (log-derivative of dτ/dt)
 }
 
 // ============================================================================
@@ -298,12 +306,133 @@ function computeEnergyFlux(bulk: DilatonGRState, dx: number, i_b: number): numbe
 }
 
 /**
- * Full system RK4 stepper (v2.0: Phase 2 implementation)
+ * Sample a field at arbitrary position x ∈ [0, L] (Phase 3).
+ * Uses linear interpolation between nearest grid points.
+ * Assumes periodic boundary conditions.
  *
- * Integrates three coupled wave equations:
+ * @param field Vec of length nx
+ * @param x Physical position
+ * @param L Domain size
+ * @param dx Grid spacing
+ * @returns Interpolated value
+ */
+function sampleAtPosition(field: Vec, x: number, L: number, dx: number): number {
+  const nx = field.length;
+  // Map x to grid index (periodic boundary)
+  const x_periodic = ((x % L) + L) % L;
+  const idx_real = x_periodic / dx;
+  const i = Math.floor(idx_real);
+  const frac = idx_real - i;
+  const i_next = (i + 1) % nx;
+
+  // Linear interpolation
+  return field[i] * (1 - frac) + field[i_next] * frac;
+}
+
+/**
+ * Compute dτ/dt for conformal metric: ds² = -e^(2ρ) dt² + e^(2ρ) dx² (Phase 3).
+ *
+ * Along interface (x = x_b):
+ *   dτ/dt = e^{ρ(x_b)} * √(1 - v_b²)
+ *
+ * (Setting signal speed = 1, assuming |v_b| < 1)
+ *
+ * @param rho_at_xb Lapse function value at interface
+ * @param v_b Interface velocity
+ * @returns dτ/dt (proper time rate)
+ */
+function computeProperTimeRate(rho_at_xb: number, v_b: number): number {
+  const exp_rho = Math.exp(rho_at_xb);
+  const vel_factor = Math.sqrt(Math.max(0, 1 - v_b * v_b));
+  return exp_rho * vel_factor;
+}
+
+/**
+ * Interface worldline RHS derivatives (Phase 3).
+ *
+ * Computes time derivatives for:
+ *   ∂_t x_b = v_b
+ *   ∂_t v_b = a_b (acceleration from force law)
+ *   ∂_t θ = d/dτ [log(dτ/dt)] (expansion scalar)
+ *   ∂_t s = (Φ_in - κs) / T_Σ (entropy from Phase 2)
+ *   ∂_t τ = dτ/dt (proper time clock)
+ */
+interface InterfaceRHS {
+  dx_b: number;
+  dv_b: number;
+  dtheta: number;
+  ds: number;
+  dtau: number;
+}
+
+function computeInterfaceRHS(
+  bulk: DilatonGRState,
+  iface: InterfaceState,
+  dx: number,
+  L: number,
+  lambda_flux: number = 0.1
+): InterfaceRHS {
+  const { x_b, v_b, s } = iface;
+
+  // Sample fields at interface position
+  const rho_at_xb = sampleAtPosition(bulk.rho, x_b, L, dx);
+  const rho_x = derivative(bulk.rho, dx);
+  const rho_x_at_xb = sampleAtPosition(rho_x, x_b, L, dx);
+
+  const X_x = derivative(bulk.X, dx);
+  const X_x_at_xb = sampleAtPosition(X_x, x_b, L, dx);
+
+  const psi_x = derivative(bulk.psi, dx);
+  const psi_x_at_xb = sampleAtPosition(psi_x, x_b, L, dx);
+  const psi_dot_at_xb = sampleAtPosition(bulk.psi_dot, x_b, L, dx);
+
+  // 1. Position: dx_b = v_b
+  const dx_b = v_b;
+
+  // 2. Velocity: force from energy flux (Phase 3 force law)
+  const energy_flux = psi_dot_at_xb * psi_x_at_xb;
+  const F_flux = lambda_flux * energy_flux;
+
+  // Penalty term: nudge toward junction condition [∂_x X] = 8π E_Σ(s)
+  const target_jump = 8 * Math.PI * s;
+  const actual_jump = X_x_at_xb;
+  const F_junction = 0.01 * (actual_jump - target_jump);
+
+  const m_eff = 1.0;
+  const a_b = (F_flux + F_junction) / m_eff;
+  const dv_b = a_b;
+
+  // 3. Expansion scalar: log-derivative of proper-time rate
+  // θ ≈ (1/(dτ/dt)) * d(dτ/dt)/dt
+  // Simplified proxy: θ ≈ v_b * ∂ρ/∂x|_{x_b}
+  const dtheta = v_b * rho_x_at_xb;
+
+  // 4. Entropy (from Phase 2)
+  const T_Sigma = 1.0;
+  const kappa = 0.01;
+  const ds = (energy_flux - kappa * s) / T_Sigma;
+
+  // 5. Proper time clock
+  const dtau_dt = computeProperTimeRate(rho_at_xb, v_b);
+  const dtau = dtau_dt;
+
+  return { dx_b, dv_b, dtheta, ds, dtau };
+}
+
+/**
+ * Full system RK4 stepper (v2.0: Phase 2 + Phase 3 implementation)
+ *
+ * Integrates three coupled wave equations (Phase 2):
  *   (∂_t² - ∂_x²)ρ = e^(2ρ) / 2
  *   (∂_t² - ∂_x²)X = 8π(T₀₀^ψ + T₀₀^Σ)
  *   (∂_t² - ∂_x²)ψ = 0
+ *
+ * Plus interface worldline dynamics (Phase 3):
+ *   ∂_t x_b = v_b
+ *   ∂_t v_b = a_b (from flux + junction penalty)
+ *   ∂_t θ = dθ/dt (expansion scalar evolution)
+ *   ∂_t s = ds/dt (entropy)
+ *   ∂_t τ = dτ/dt (proper time)
  */
 export function stepRK4(
   state: TwoManifoldState,
@@ -404,17 +533,60 @@ export function stepRK4(
     ),
   };
 
-  // Interface: entropy evolution (placeholder, Phase 3)
-  const matterStress = computeMatterStress(bulk, dx);
-  const flux = computeEnergyFlux(bulk, dx, iface.x_b_index);
-  const T_Sigma = 1.0; // interface temperature (Phase 3)
-  const kappa = 0.01; // dissipation coefficient (Phase 3)
-  const ds_dtau = (flux - kappa * iface.s) / T_Sigma;
+  // Interface: full worldline dynamics with RK4 (Phase 3)
+  const k1_iface = computeInterfaceRHS(bulk, iface, dx, state.L);
+
+  // k2 stage
+  const iface_k1_half: InterfaceState = {
+    x_b: iface.x_b + k1_iface.dx_b * (dt / 2),
+    v_b: iface.v_b + k1_iface.dv_b * (dt / 2),
+    theta: iface.theta + k1_iface.dtheta * (dt / 2),
+    s: Math.max(0, iface.s + k1_iface.ds * (dt / 2)),
+    x_b_index: Math.round(iface.x_b + k1_iface.dx_b * (dt / 2) / dx),
+    tau: iface.tau + k1_iface.dtau * (dt / 2),
+  };
+  const k2_iface = computeInterfaceRHS(bulk_k1_half, iface_k1_half, dx, state.L);
+
+  // k3 stage
+  const iface_k2_half: InterfaceState = {
+    x_b: iface.x_b + k2_iface.dx_b * (dt / 2),
+    v_b: iface.v_b + k2_iface.dv_b * (dt / 2),
+    theta: iface.theta + k2_iface.dtheta * (dt / 2),
+    s: Math.max(0, iface.s + k2_iface.ds * (dt / 2)),
+    x_b_index: Math.round(iface.x_b + k2_iface.dx_b * (dt / 2) / dx),
+    tau: iface.tau + k2_iface.dtau * (dt / 2),
+  };
+  const k3_iface = computeInterfaceRHS(bulk_k2_half, iface_k2_half, dx, state.L);
+
+  // k4 stage
+  const iface_k3_full: InterfaceState = {
+    x_b: iface.x_b + k3_iface.dx_b * dt,
+    v_b: iface.v_b + k3_iface.dv_b * dt,
+    theta: iface.theta + k3_iface.dtheta * dt,
+    s: Math.max(0, iface.s + k3_iface.ds * dt),
+    x_b_index: Math.round((iface.x_b + k3_iface.dx_b * dt) / dx),
+    tau: iface.tau + k3_iface.dtau * dt,
+  };
+  const k4_iface = computeInterfaceRHS(bulk_k3_full, iface_k3_full, dx, state.L);
+
+  // RK4 combination for interface state (average the derivatives)
+  const avg_scalar = (k1: number, k2: number, k3: number, k4: number): number => {
+    return (k1 + 2 * k2 + 2 * k3 + k4) / 6;
+  };
+
+  const new_x_b = iface.x_b + avg_scalar(k1_iface.dx_b, k2_iface.dx_b, k3_iface.dx_b, k4_iface.dx_b) * dt;
+  const new_v_b = iface.v_b + avg_scalar(k1_iface.dv_b, k2_iface.dv_b, k3_iface.dv_b, k4_iface.dv_b) * dt;
+  const new_theta = iface.theta + avg_scalar(k1_iface.dtheta, k2_iface.dtheta, k3_iface.dtheta, k4_iface.dtheta) * dt;
+  const new_s = Math.max(0, iface.s + avg_scalar(k1_iface.ds, k2_iface.ds, k3_iface.ds, k4_iface.ds) * dt);
+  const new_tau = iface.tau + avg_scalar(k1_iface.dtau, k2_iface.dtau, k3_iface.dtau, k4_iface.dtau) * dt;
 
   const new_iface: InterfaceState = {
-    s: Math.max(0, iface.s + ds_dtau * dt),
-    x_b_index: iface.x_b_index, // fixed position (Phase 4)
-    tau: iface.tau + dt, // proper time advances
+    x_b: new_x_b,
+    v_b: new_v_b,
+    theta: new_theta,
+    s: new_s,
+    x_b_index: Math.round(new_x_b / dx),
+    tau: new_tau,
   };
 
   return {
@@ -545,11 +717,14 @@ export function initializeSmooth(
     psi_dot,
   };
 
-  // Interface: initially at equilibrium
+  // Interface: initially at equilibrium (Phase 3: now has worldline dynamics)
   const iface: InterfaceState = {
     s: 0, // no entropy
     x_b_index,
     tau: 0, // proper time starts at 0
+    x_b, // physical position
+    v_b: 0, // starts at rest
+    theta: 0, // no expansion initially
   };
 
   return {
@@ -601,11 +776,14 @@ export function initializeCliff(
     psi_dot,
   };
 
-  // Interface: under stress from driving
+  // Interface: under stress from driving (Phase 3: now has worldline dynamics)
   const iface: InterfaceState = {
     s: 0.05, // initial entropy from interface resistance
     x_b_index,
     tau: 0,
+    x_b, // physical position
+    v_b: 0, // starts at rest (will be accelerated by flux)
+    theta: 0, // no expansion initially
   };
 
   return {
