@@ -10,6 +10,9 @@
  * Based on spectral-dynamical modeling for contract health and agent safety.
  */
 
+// Import existing math utilities for consistency
+import { EPS, sigmoid as sigmoidBase, dot as dotBase } from './math';
+
 export type Vec = number[]; // length 8 by default
 
 // ============================================================================
@@ -26,10 +29,9 @@ export const softplus = (z: number): number => {
 
 /**
  * Sigmoid: 1 / (1 + exp(-z))
+ * Re-exported from math.ts for convenience
  */
-export const sigmoid = (z: number): number => {
-  return 1 / (1 + Math.exp(-z));
-};
+export const sigmoid = sigmoidBase;
 
 /**
  * ReLU: max(0, z)
@@ -44,13 +46,14 @@ export const relu = (z: number): number => {
 
 /**
  * Dot product of two vectors
+ * Re-exported from math.ts for convenience
  */
-export const dot = (a: Vec, b: Vec): number => {
-  return a.reduce((s, ai, i) => s + ai * b[i], 0);
-};
+export const dot = dotBase;
 
 /**
  * L2 norm (Euclidean length) of a vector
+ * Similar to norm() in math.ts but without EPS addition,
+ * as we handle zero-protection explicitly where needed.
  */
 export const l2 = (v: Vec): number => {
   return Math.sqrt(dot(v, v));
@@ -260,7 +263,8 @@ export function scoreAgent(
     throw new Error("Missing agent or phi parameters");
   }
   
-  const dtMin = 1e-6; // minimum time step for numerical stability
+  // Minimum time step for numerical stability (same as EPS from math.ts)
+  const dtMin = EPS;
   
   // Compute velocity and acceleration via finite differences
   const v: Vec[] = xs.map(() => Array(8).fill(0));
