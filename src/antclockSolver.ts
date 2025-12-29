@@ -116,13 +116,23 @@ export function computeConstraintResiduals(
   const energy_flux_shadow = shadow.energy_density?.[Math.floor(shadow.energy_density.length / 2)] ?? 0;
   const energy_balance = Math.abs((energy_flux_phys - energy_flux_shadow) - iface.s * iface.sigma);
 
+  // Momentum constraint: D_i π^i ≈ 0
+  // For 1+1D: ∂_x π_X = surface term
+  // Approximate using finite differences
+  const pi_X_grad_phys = phys.K.length > 1 
+    ? Math.abs((phys.K[1] - phys.K[0]) / dx)
+    : 0;
+  const pi_X_grad_shadow = shadow.K.length > 1
+    ? Math.abs((shadow.K[1] - shadow.K[0]) / dx)
+    : 0;
+
   return {
     H_phys: H_phys_val,
     H_shadow: H_shadow_val,
-    M_phys: 0, // TODO: implement momentum constraint
-    M_shadow: 0,
+    M_phys: pi_X_grad_phys,
+    M_shadow: pi_X_grad_shadow,
     junction: junction_residual,
-    conservation_parallel: 0, // TODO: implement tangential conservation
+    conservation_parallel: Math.abs(pi_X_grad_phys - pi_X_grad_shadow), // tangential momentum conservation
     conservation_normal: energy_balance,
   };
 }
