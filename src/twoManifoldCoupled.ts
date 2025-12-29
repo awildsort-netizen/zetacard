@@ -21,6 +21,10 @@ export function zeros(n: number): Vec {
   return new Array(n).fill(0);
 }
 
+export function ones(n: number): Vec {
+  return new Array(n).fill(1);
+}
+
 export function linspace(a: number, b: number, n: number): Vec {
   const dx = (b - a) / (n - 1);
   return Array.from({ length: n }, (_, i) => a + i * dx);
@@ -132,398 +136,296 @@ export interface InterfaceState {
 }
 
 // ============================================================================
-// Full Coupled System State
+// Full Coupled System State (v2.0)
 // ============================================================================
 
+/**
+ * Complete state for the dilaton gravity two-manifold system.
+ *
+ * Single manifold with interface (no separate "shadow" bulk in v2.0).
+ * All fields are dynamical (no constraints).
+ *
+ * State vector: (ρ, ρ̇, X, Ẋ, ψ, ψ̇) on grid [0, L] with N points.
+ */
 export interface TwoManifoldState {
-  // Physical bulk
-  phys: ADMState;
+  // Physical bulk (dilaton GR)
+  bulk: DilatonGRState;
 
-  // Shadow bulk
-  shadow: ADMState;
-
-  // Interface
+  // Interface worldline
   interface: InterfaceState;
 
   // Grid parameters
   nx: number; // spatial grid points
   L: number; // domain size [0, L]
   dx: number; // spatial step
+  x_b: number; // interface position (physical coordinate)
   t: number; // current time
+  dt: number; // time step (adaptive in Antclock)
 }
 
 // ============================================================================
 // Hamiltonian Constraint (determines lapse N)
 // ============================================================================
 
+// ============================================================================
+// Equations of Motion (v2.0)
+// ============================================================================
+//
+// Phase 2: Three coupled wave equations
+//   (∂_t² - ∂_x²)ρ = e^(2ρ) / 2
+//   (∂_t² - ∂_x²)X = 8π(T₀₀^ψ + T₀₀^Σ)
+//   (∂_t² - ∂_x²)ψ = 0
+// ============================================================================
+
+// ============================================================================
+// DEPRECATED: Old ADM Functions (v1.0, to be replaced in Phase 2)
+// ============================================================================
+
 /**
- * In 1+1D, the Hamiltonian constraint is:
- *   H = pi_X^2 - (1/2)(X')^2 + X * (energy density of matter) + boundary terms = 0
- *
- * We solve for the lapse N by setting this to zero (or integrating).
- * For simplicity, we assume N = 1 (proper time = coordinate time).
+ * @deprecated Use dilatonWaveEquation() instead (Phase 2)
  */
-
-export function computeEnergyDensity(bulk: ADMState, dx: number): Vec {
-  const n = bulk.psi.length;
-  const T00 = zeros(n);
-
-  // Kinetic energy: (1/2) psi_dot^2 / X
-  // Potential energy: (1/2) (psi')^2 / X
-  const psi_dx = derivative(bulk.psi, dx);
-
-  for (let i = 0; i < n; i++) {
-    const KE = 0.5 * bulk.Pi_psi[i] * bulk.Pi_psi[i] / Math.max(bulk.X[i], 1e-6);
-    const PE = 0.5 * psi_dx[i] * psi_dx[i] / Math.max(bulk.X[i], 1e-6);
-    T00[i] = KE + PE;
-  }
-
-  bulk.energy_density = T00;
-  return T00;
+export function computeEnergyDensity(_bulk: DilatonGRState, _dx: number): Vec {
+  throw new Error('computeEnergyDensity: v1.0 removed, use v2.0 equations in Phase 2');
 }
 
-// ============================================================================
-// Equations of Motion
-// ============================================================================
-
 /**
- * Time derivatives for the physical bulk matter fields.
+ * @deprecated Use matterWaveEquation() instead (Phase 2)
  */
 export function matterEvolution(
-  bulk: ADMState,
-  dx: number,
-  N: number = 1.0
+  _bulk: DilatonGRState,
+  _dx: number,
+  _N?: number
 ): { d_psi: Vec; d_Pi_psi: Vec } {
-  const d_psi = scale(bulk.Pi_psi, 1 / Math.max(bulk.X[0], 1e-6));
-
-  const psi_xx = laplacian(bulk.psi, dx);
-  const d_Pi_psi = scale(psi_xx, Math.max(bulk.X[0], 1e-6));
-
-  return { d_psi, d_Pi_psi };
+  throw new Error('matterEvolution: v1.0 removed, use v2.0 equations in Phase 2');
 }
 
 /**
- * Time derivatives for the ADM variables (X and its momentum).
- *
- * In simplified form (assuming X depends only on time, not space):
- *   dX/dt = 2 * pi_X (approximately)
- *   d(pi_X)/dt = -(d/dx)(...) (spatial variation; can be simplified)
- *
- * For the proof of concept, we treat X as spatially homogeneous.
+ * @deprecated Use dilatonEvolution() instead (Phase 2)
  */
 export function ADMEvolution(
-  bulk: ADMState,
-  T00: Vec,
-  dx: number,
-  interface_stress?: number
+  _bulk: DilatonGRState,
+  _T00: Vec,
+  _dx: number,
+  _interface_stress?: number
 ): { d_X: Vec; d_pi_X: Vec } {
-  const n = bulk.X.length;
-  const d_X = scale(bulk.K, 1.0); // X' = K (extrinsic curvature is time derivative of scale)
-
-  // For homogeneous X, pi_X is a scalar at each point; we'll simplify.
-  // In full 1+1D, d(pi_X)/dt = -d/dx(...) + matter sources
-  // For simplicity: d(pi_X)/dt ≈ integral of T00 over domain (energy balance)
-  const avg_T00 = dot(T00, ones(n)) / n;
-  const d_pi_X = scale(ones(n), -avg_T00 * dx);
-
-  return { d_X, d_pi_X };
-}
-
-function ones(n: number): Vec {
-  return new Array(n).fill(1);
+  throw new Error('ADMEvolution: v1.0 removed, use v2.0 equations in Phase 2');
 }
 
 /**
- * Interface dynamics: entropy and expansion.
- * Strongly coupled to the energy difference between bulks.
+ * @deprecated Use interfaceWorldlineEvolution() instead (Phase 4)
  */
 export function interfaceEvolution(
-  iface: InterfaceState,
-  phys_T00_at_interface: number,
-  shadow_T00_at_interface: number
+  _iface: InterfaceState,
+  _phys_T00_at_interface: number,
+  _shadow_T00_at_interface: number
 ): { d_s: number; d_theta: number } {
-  // Energy flux from physical to shadow (or vice versa)
-  const Q_flux = phys_T00_at_interface - shadow_T00_at_interface;
-
-  // Temperature of interface: increases with accumulated work
-  const T_Sigma = Math.max(iface.sigma + iface.s * 0.1, 0.01);
-
-  // Entropy production: d_s/dt = Q_flux / T + dissipation
-  // Dissipation term: high theta or high eta means more friction
-  const dissipation = iface.eta * iface.theta * iface.theta;
-  const d_s = Math.abs(Q_flux) / T_Sigma + dissipation / T_Sigma;
-
-  // Expansion: theta couples to the energy flow
-  // If Q_flux is large (cliff potential), theta oscillates
-  // If Q_flux is small (smooth field), theta decays
-  const expansionDrive = Math.abs(Q_flux) * 0.5;
-  const expansionDamping = iface.eta * iface.theta;
-  const d_theta = expansionDrive - expansionDamping;
-
-  return { d_s, d_theta };
+  throw new Error('interfaceEvolution: v1.0 removed, use v2.0 interface in Phase 4');
 }
 
 // ============================================================================
-// Full System RK4 Stepper (Full 4-Stage)
+// Wave Equation RHS Functions (v2.0: Phase 2)
 // ============================================================================
 
-function stepState(
-  state: TwoManifoldState,
-  dt: number,
-  stageCoeff: number = 1.0
-): {
-  phys: ADMState;
-  shadow: ADMState;
-  interface: InterfaceState;
-} {
-  const { phys, shadow, interface: iface } = state;
-  const { nx, L, dx } = state;
-
-  // 1. Compute energy densities
-  const T00_phys = computeEnergyDensity(phys, dx);
-  const T00_shadow = computeEnergyDensity(shadow, dx);
-
-  // 2. Interface location
-  const x_b = Math.floor((nx - 1) / 2);
-  const T00_at_interface_phys = T00_phys[x_b];
-  const T00_at_interface_shadow = T00_shadow[x_b];
-
-  // 3. Matter evolution
-  const matter_phys = matterEvolution(phys, dx, 1.0);
-  const matter_shadow = matterEvolution(shadow, dx, 1.0);
-
-  // 4. ADM evolution
-  const ADM_phys = ADMEvolution(phys, T00_phys, dx, iface.sigma * iface.s);
-  const ADM_shadow = ADMEvolution(shadow, T00_shadow, dx, -iface.sigma * iface.s);
-
-  // 5. Interface evolution (improved coupling)
-  const iface_evo = interfaceEvolution(
-    iface,
-    T00_at_interface_phys,
-    T00_at_interface_shadow
-  );
-
-  // 6. Assemble derivatives
-  const dt_coeff = stageCoeff * dt;
-
-  return {
-    phys: {
-      psi: add(phys.psi, scale(matter_phys.d_psi, dt_coeff)),
-      Pi_psi: add(phys.Pi_psi, scale(matter_phys.d_Pi_psi, dt_coeff)),
-      X: add(phys.X, scale(ADM_phys.d_X, dt_coeff)),
-      K: scale(ADM_phys.d_X, 1),
-    },
-    shadow: {
-      psi: add(shadow.psi, scale(matter_shadow.d_psi, dt_coeff)),
-      Pi_psi: add(shadow.Pi_psi, scale(matter_shadow.d_Pi_psi, dt_coeff)),
-      X: add(shadow.X, scale(ADM_shadow.d_X, dt_coeff)),
-      K: scale(ADM_shadow.d_X, 1),
-    },
-    interface: {
-      ...iface,
-      s: Math.max(0, iface.s + iface_evo.d_s * dt_coeff),
-      theta: iface.theta + iface_evo.d_theta * dt_coeff,
-    },
-  };
+/**
+ * Compute RHS of lapse wave equation:
+ *   (∂_t² - ∂_x²)ρ = e^(2ρ) / 2
+ *
+ * Returns: ∂_t(rho_dot) = ∂_x²(rho) + e^(2ρ) / 2
+ */
+function computeRhoRHS(bulk: DilatonGRState, dx: number): Vec {
+  const { rho } = bulk;
+  const laplacian_rho = laplacian(rho, dx);
+  const source = rho.map(r => Math.exp(2 * r) / 2);
+  return add(laplacian_rho, source);
 }
 
+/**
+ * Compute RHS of dilaton wave equation:
+ *   (∂_t² - ∂_x²)X = 8π(T₀₀^ψ + T₀₀^Σ)
+ *
+ * T₀₀^ψ = (1/2)(ψ̇² + (∂_x ψ)²) is matter stress-energy
+ * T₀₀^Σ ≈ entropy contribution (Phase 3)
+ *
+ * Returns: ∂_t(X_dot) = ∂_x²(X) + 8π·T₀₀
+ */
+function computeXRHS(bulk: DilatonGRState, dx: number, matterStress: Vec): Vec {
+  const { X } = bulk;
+  const laplacian_X = laplacian(X, dx);
+  const source = matterStress.map(t => 8 * Math.PI * t);
+  return add(laplacian_X, source);
+}
+
+/**
+ * Compute RHS of matter wave equation:
+ *   (∂_t² - ∂_x²)ψ = 0
+ *
+ * Pure wave equation (massless scalar field)
+ *
+ * Returns: ∂_t(psi_dot) = ∂_x²(ψ)
+ */
+function computePsiRHS(bulk: DilatonGRState, dx: number): Vec {
+  const { psi } = bulk;
+  return laplacian(psi, dx);
+}
+
+/**
+ * Compute energy-momentum tensor component T₀₀^ψ.
+ *
+ * For massless scalar: T₀₀^ψ = (1/2)(ψ̇² + (∂_x ψ)²)
+ * Represents kinetic + spatial gradient energy
+ */
+function computeMatterStress(bulk: DilatonGRState, dx: number): Vec {
+  const { psi, psi_dot } = bulk;
+  const psi_x = derivative(psi, dx);
+  
+  const stress = zeros(psi.length);
+  for (let i = 0; i < psi.length; i++) {
+    stress[i] = 0.5 * (psi_dot[i] * psi_dot[i] + psi_x[i] * psi_x[i]);
+  }
+  return stress;
+}
+
+/**
+ * Compute energy flux at interface.
+ *
+ * Φ_in = ∂_t ψ · ∂_x ψ|_{x_b}
+ * Represents momentum flow through interface
+ */
+function computeEnergyFlux(bulk: DilatonGRState, dx: number, i_b: number): number {
+  const { psi, psi_dot } = bulk;
+  const psi_x = derivative(psi, dx);
+  return psi_dot[i_b] * psi_x[i_b];
+}
+
+/**
+ * Full system RK4 stepper (v2.0: Phase 2 implementation)
+ *
+ * Integrates three coupled wave equations:
+ *   (∂_t² - ∂_x²)ρ = e^(2ρ) / 2
+ *   (∂_t² - ∂_x²)X = 8π(T₀₀^ψ + T₀₀^Σ)
+ *   (∂_t² - ∂_x²)ψ = 0
+ */
 export function stepRK4(
   state: TwoManifoldState,
   dt: number
 ): TwoManifoldState {
-  // Full RK4: y' = f(t, y)
-  // k1 = f(t, y)
-  // k2 = f(t + dt/2, y + dt*k1/2)
-  // k3 = f(t + dt/2, y + dt*k2/2)
-  // k4 = f(t + dt, y + dt*k3)
-  // y_new = y + dt*(k1 + 2*k2 + 2*k3 + k4)/6
+  const { bulk, interface: iface, dx } = state;
 
-  const k1 = stepState(state, 0, 1.0); // compute derivatives at current state
+  // Helper to compute derivatives at a given bulk state
+  const computeDerivatives = (b: DilatonGRState): {
+    d_rho_dot: Vec;
+    d_X_dot: Vec;
+    d_psi_dot: Vec;
+    d_tau: number;
+  } => {
+    const matterStress = computeMatterStress(b, dx);
+    const flux = computeEnergyFlux(b, dx, iface.x_b_index);
 
-  // k2: half-step forward
-  const state_half_k1: TwoManifoldState = {
-    ...state,
-    phys: {
-      psi: add(state.phys.psi, scale(k1.phys.psi, dt / 2)),
-      Pi_psi: add(state.phys.Pi_psi, scale(k1.phys.Pi_psi, dt / 2)),
-      X: add(state.phys.X, scale(k1.phys.X, dt / 2)),
-      K: k1.phys.K,
-    },
-    shadow: {
-      psi: add(state.shadow.psi, scale(k1.shadow.psi, dt / 2)),
-      Pi_psi: add(state.shadow.Pi_psi, scale(k1.shadow.Pi_psi, dt / 2)),
-      X: add(state.shadow.X, scale(k1.shadow.X, dt / 2)),
-      K: k1.shadow.K,
-    },
-    interface: {
-      ...state.interface,
-      s: state.interface.s + k1.interface.s * (dt / 2),
-      theta: state.interface.theta + k1.interface.theta * (dt / 2),
-    },
-    t: state.t + dt / 2,
+    return {
+      d_rho_dot: computeRhoRHS(b, dx),
+      d_X_dot: computeXRHS(b, dx, matterStress),
+      d_psi_dot: computePsiRHS(b, dx),
+      d_tau: 1.0, // proper time synchronous with coordinate time
+    };
   };
 
-  const k2 = stepState(state_half_k1, 0, 1.0);
+  // k1: derivatives at current state
+  const k1 = computeDerivatives(bulk);
 
-  // k3: half-step forward with k2
-  const state_half_k2: TwoManifoldState = {
-    ...state,
-    phys: {
-      psi: add(state.phys.psi, scale(k2.phys.psi, dt / 2)),
-      Pi_psi: add(state.phys.Pi_psi, scale(k2.phys.Pi_psi, dt / 2)),
-      X: add(state.phys.X, scale(k2.phys.X, dt / 2)),
-      K: k2.phys.K,
-    },
-    shadow: {
-      psi: add(state.shadow.psi, scale(k2.shadow.psi, dt / 2)),
-      Pi_psi: add(state.shadow.Pi_psi, scale(k2.shadow.Pi_psi, dt / 2)),
-      X: add(state.shadow.X, scale(k2.shadow.X, dt / 2)),
-      K: k2.shadow.K,
-    },
-    interface: {
-      ...state.interface,
-      s: state.interface.s + k2.interface.s * (dt / 2),
-      theta: state.interface.theta + k2.interface.theta * (dt / 2),
-    },
-    t: state.t + dt / 2,
+  // k2: half-step with k1
+  const bulk_k1_half: DilatonGRState = {
+    rho: add(bulk.rho, scale(bulk.rho_dot, dt / 2)),
+    rho_dot: add(bulk.rho_dot, scale(k1.d_rho_dot, dt / 2)),
+    X: add(bulk.X, scale(bulk.X_dot, dt / 2)),
+    X_dot: add(bulk.X_dot, scale(k1.d_X_dot, dt / 2)),
+    psi: add(bulk.psi, scale(bulk.psi_dot, dt / 2)),
+    psi_dot: add(bulk.psi_dot, scale(k1.d_psi_dot, dt / 2)),
+  };
+  const k2 = computeDerivatives(bulk_k1_half);
+
+  // k3: half-step with k2
+  const bulk_k2_half: DilatonGRState = {
+    rho: add(bulk.rho, scale(bulk.rho_dot, dt / 2)),
+    rho_dot: add(bulk.rho_dot, scale(k2.d_rho_dot, dt / 2)),
+    X: add(bulk.X, scale(bulk.X_dot, dt / 2)),
+    X_dot: add(bulk.X_dot, scale(k2.d_X_dot, dt / 2)),
+    psi: add(bulk.psi, scale(bulk.psi_dot, dt / 2)),
+    psi_dot: add(bulk.psi_dot, scale(k2.d_psi_dot, dt / 2)),
+  };
+  const k3 = computeDerivatives(bulk_k2_half);
+
+  // k4: full step with k3
+  const bulk_k3_full: DilatonGRState = {
+    rho: add(bulk.rho, scale(bulk.rho_dot, dt)),
+    rho_dot: add(bulk.rho_dot, scale(k3.d_rho_dot, dt)),
+    X: add(bulk.X, scale(bulk.X_dot, dt)),
+    X_dot: add(bulk.X_dot, scale(k3.d_X_dot, dt)),
+    psi: add(bulk.psi, scale(bulk.psi_dot, dt)),
+    psi_dot: add(bulk.psi_dot, scale(k3.d_psi_dot, dt)),
+  };
+  const k4 = computeDerivatives(bulk_k3_full);
+
+  // RK4 combination: y_new = y + dt*(k1 + 2*k2 + 2*k3 + k4)/6
+  const avg = (k1_val: Vec, k2_val: Vec, k3_val: Vec, k4_val: Vec): Vec => {
+    const result = zeros(k1_val.length);
+    for (let i = 0; i < k1_val.length; i++) {
+      result[i] = (k1_val[i] + 2*k2_val[i] + 2*k3_val[i] + k4_val[i]) / 6;
+    }
+    return result;
   };
 
-  const k3 = stepState(state_half_k2, 0, 1.0);
+  const new_bulk: DilatonGRState = {
+    // Position updates: y_new = y + dt * y_dot
+    rho: add(bulk.rho, scale(bulk.rho_dot, dt)),
+    X: add(bulk.X, scale(bulk.X_dot, dt)),
+    psi: add(bulk.psi, scale(bulk.psi_dot, dt)),
 
-  // k4: full step forward with k3
-  const state_full_k3: TwoManifoldState = {
-    ...state,
-    phys: {
-      psi: add(state.phys.psi, scale(k3.phys.psi, dt)),
-      Pi_psi: add(state.phys.Pi_psi, scale(k3.phys.Pi_psi, dt)),
-      X: add(state.phys.X, scale(k3.phys.X, dt)),
-      K: k3.phys.K,
-    },
-    shadow: {
-      psi: add(state.shadow.psi, scale(k3.shadow.psi, dt)),
-      Pi_psi: add(state.shadow.Pi_psi, scale(k3.shadow.Pi_psi, dt)),
-      X: add(state.shadow.X, scale(k3.shadow.X, dt)),
-      K: k3.shadow.K,
-    },
-    interface: {
-      ...state.interface,
-      s: state.interface.s + k3.interface.s * dt,
-      theta: state.interface.theta + k3.interface.theta * dt,
-    },
-    t: state.t + dt,
+    // Velocity updates: y_dot_new = y_dot + dt * d_y_dot
+    rho_dot: add(
+      bulk.rho_dot,
+      scale(
+        avg(k1.d_rho_dot, k2.d_rho_dot, k3.d_rho_dot, k4.d_rho_dot),
+        dt
+      )
+    ),
+    X_dot: add(
+      bulk.X_dot,
+      scale(
+        avg(k1.d_X_dot, k2.d_X_dot, k3.d_X_dot, k4.d_X_dot),
+        dt
+      )
+    ),
+    psi_dot: add(
+      bulk.psi_dot,
+      scale(
+        avg(k1.d_psi_dot, k2.d_psi_dot, k3.d_psi_dot, k4.d_psi_dot),
+        dt
+      )
+    ),
   };
 
-  const k4 = stepState(state_full_k3, 0, 1.0);
+  // Interface: entropy evolution (placeholder, Phase 3)
+  const matterStress = computeMatterStress(bulk, dx);
+  const flux = computeEnergyFlux(bulk, dx, iface.x_b_index);
+  const T_Sigma = 1.0; // interface temperature (Phase 3)
+  const kappa = 0.01; // dissipation coefficient (Phase 3)
+  const ds_dtau = (flux - kappa * iface.s) / T_Sigma;
 
-  // RK4 combination
+  const new_iface: InterfaceState = {
+    s: Math.max(0, iface.s + ds_dtau * dt),
+    x_b_index: iface.x_b_index, // fixed position (Phase 4)
+    tau: iface.tau + dt, // proper time advances
+  };
+
   return {
-    ...state,
-    phys: {
-      psi: add(
-        state.phys.psi,
-        scale(
-          add(
-            add(k1.phys.psi, scale(k2.phys.psi, 2)),
-            add(scale(k3.phys.psi, 2), k4.phys.psi)
-          ),
-          dt / 6
-        )
-      ),
-      Pi_psi: add(
-        state.phys.Pi_psi,
-        scale(
-          add(
-            add(k1.phys.Pi_psi, scale(k2.phys.Pi_psi, 2)),
-            add(scale(k3.phys.Pi_psi, 2), k4.phys.Pi_psi)
-          ),
-          dt / 6
-        )
-      ),
-      X: add(
-        state.phys.X,
-        scale(
-          add(
-            add(k1.phys.X, scale(k2.phys.X, 2)),
-            add(scale(k3.phys.X, 2), k4.phys.X)
-          ),
-          dt / 6
-        )
-      ),
-      K: add(
-        state.phys.K,
-        scale(
-          add(
-            add(k1.phys.K, scale(k2.phys.K, 2)),
-            add(scale(k3.phys.K, 2), k4.phys.K)
-          ),
-          dt / 6
-        )
-      ),
-    },
-    shadow: {
-      psi: add(
-        state.shadow.psi,
-        scale(
-          add(
-            add(k1.shadow.psi, scale(k2.shadow.psi, 2)),
-            add(scale(k3.shadow.psi, 2), k4.shadow.psi)
-          ),
-          dt / 6
-        )
-      ),
-      Pi_psi: add(
-        state.shadow.Pi_psi,
-        scale(
-          add(
-            add(k1.shadow.Pi_psi, scale(k2.shadow.Pi_psi, 2)),
-            add(scale(k3.shadow.Pi_psi, 2), k4.shadow.Pi_psi)
-          ),
-          dt / 6
-        )
-      ),
-      X: add(
-        state.shadow.X,
-        scale(
-          add(
-            add(k1.shadow.X, scale(k2.shadow.X, 2)),
-            add(scale(k3.shadow.X, 2), k4.shadow.X)
-          ),
-          dt / 6
-        )
-      ),
-      K: add(
-        state.shadow.K,
-        scale(
-          add(
-            add(k1.shadow.K, scale(k2.shadow.K, 2)),
-            add(scale(k3.shadow.K, 2), k4.shadow.K)
-          ),
-          dt / 6
-        )
-      ),
-    },
-    interface: {
-      ...state.interface,
-      s: Math.max(
-        0,
-        state.interface.s +
-          ((k1.interface.s +
-            2 * k2.interface.s +
-            2 * k3.interface.s +
-            k4.interface.s) /
-            6) *
-            dt
-      ),
-      theta:
-        state.interface.theta +
-        ((k1.interface.theta +
-          2 * k2.interface.theta +
-          2 * k3.interface.theta +
-          k4.interface.theta) /
-          6) *
-          dt,
-    },
+    bulk: new_bulk,
+    interface: new_iface,
+    nx: state.nx,
+    L: state.L,
+    dx: state.dx,
+    x_b: state.x_b,
     t: state.t + dt,
+    dt: state.dt,
   };
 }
 
@@ -532,26 +434,68 @@ export function stepRK4(
 // ============================================================================
 
 export function totalEnergy(state: TwoManifoldState): number {
-  const { phys, shadow, interface: iface, dx } = state;
+  // Compute total energy as spatial integral of energy density.
+  // 
+  // Energy density: ε = (1/2)[ρ̇² + ρ'² + e^(2ρ)(Ẋ² + X'²) + e^(2ρ)(ψ̇² + ψ'²)]
+  // Plus interface contribution: ε_interface = s (entropy)
+  //
+  // Total: E = ∫ ε dx + s
 
-  // Energy from kinetic + potential in each bulk
-  const E_phys = dot(phys.energy_density || zeros(phys.psi.length), ones(phys.psi.length)) * dx;
-  const E_shadow = dot(shadow.energy_density || zeros(shadow.psi.length), ones(shadow.psi.length)) * dx;
+  const { bulk, interface: iface, dx } = state;
+  
+  const rho_x = derivative(bulk.rho, dx);
+  const X_x = derivative(bulk.X, dx);
+  const psi_x = derivative(bulk.psi, dx);
 
-  // Interface entropy (acts like stored energy)
-  const E_interface = iface.s;
+  let kinetic_energy = 0;
+  let spatial_energy = 0;
 
-  return E_phys + E_shadow + E_interface;
+  for (let i = 0; i < bulk.psi.length; i++) {
+    const exp2rho = Math.exp(2 * bulk.rho[i]);
+    
+    // Kinetic energy: (1/2)(ρ̇² + e^(2ρ)(Ẋ² + ψ̇²))
+    kinetic_energy += 0.5 * (
+      bulk.rho_dot[i] * bulk.rho_dot[i] +
+      exp2rho * (bulk.X_dot[i] * bulk.X_dot[i] + bulk.psi_dot[i] * bulk.psi_dot[i])
+    );
+
+    // Spatial gradient energy: (1/2)(ρ'² + e^(2ρ)(X'² + ψ'²))
+    spatial_energy += 0.5 * (
+      rho_x[i] * rho_x[i] +
+      exp2rho * (X_x[i] * X_x[i] + psi_x[i] * psi_x[i])
+    );
+  }
+
+  const bulk_energy = (kinetic_energy + spatial_energy) * dx;
+  const interface_energy = iface.s;
+
+  return bulk_energy + interface_energy;
 }
 
 export function entropyProduction(state: TwoManifoldState, dt: number): number {
-  // Entropy production rate (should be >= 0 by second law)
-  const { interface: iface } = state;
-
-  const T_Sigma = Math.max(iface.sigma, 0.1);
-  const dissipation = iface.eta * iface.theta * iface.theta;
-
-  return dissipation / T_Sigma;
+  // Entropy production rate from Phase 2 dynamics.
+  //
+  // ds/dτ = (Φ_in - κs) / T_Σ
+  //
+  // where:
+  // - Φ_in = ∂_t ψ · ∂_x ψ|_{x_b} is energy flux through interface
+  // - κ is dissipation coefficient (0.01)
+  // - T_Σ is interface temperature (1.0)
+  
+  const { bulk, interface: iface, dx } = state;
+  
+  const psi_x = derivative(bulk.psi, dx);
+  const i_b = iface.x_b_index;
+  
+  // Energy flux at interface
+  const flux = bulk.psi_dot[i_b] * psi_x[i_b];
+  
+  // Entropy production rate
+  const T_Sigma = 1.0;
+  const kappa = 0.01;
+  const ds_dtau = (flux - kappa * iface.s) / T_Sigma;
+  
+  return ds_dtau;
 }
 
 export interface ConservationReport {
@@ -562,92 +506,117 @@ export interface ConservationReport {
 }
 
 // ============================================================================
-// Initialization
+// Initialization (v2.0: Dilaton GR)
 // ============================================================================
 
+/**
+ * Initialize a smooth field configuration.
+ *
+ * Scenario: Gaussian pulse in matter field, all metrics at rest.
+ * Expected behavior: Low energy flux, no coercion, high efficiency.
+ */
 export function initializeSmooth(
   nx: number,
   L: number
 ): TwoManifoldState {
   const x = linspace(0, L, nx);
   const dx = L / (nx - 1);
+  const x_b = L / 2; // interface at center
+  const x_b_index = Math.floor(nx / 2);
 
-  // Physical bulk: initial Gaussian pulse in matter field
-  const phys: ADMState = {
-    X: ones(nx).map((_) => 1.0), // unit scale factor
-    K: zeros(nx), // initially at rest
-    psi: x.map((xi) => Math.exp(-0.5 * ((xi - L / 2) / (L / 8)) ** 2)), // Gaussian pulse
-    Pi_psi: zeros(nx), // initially at rest
+  // Matter field: Gaussian pulse (smooth, no sharp features)
+  const psi = x.map((xi) => Math.exp(-0.5 * ((xi - x_b) / (L / 8)) ** 2));
+  const psi_dot = zeros(nx); // initially at rest
+
+  // Dilaton field: unit value initially (no deformation)
+  const X = new Array(nx).fill(1.0);
+  const X_dot = zeros(nx); // at rest
+
+  // Lapse function: unit (conformal gauge, initially flat)
+  const rho = zeros(nx); // e^(2*0) = 1 → flat metric
+  const rho_dot = zeros(nx); // at rest
+
+  const bulk: DilatonGRState = {
+    rho,
+    rho_dot,
+    X,
+    X_dot,
+    psi,
+    psi_dot,
   };
 
-  // Shadow bulk: empty (or slightly excited to show energy transfer)
-  const shadow: ADMState = {
-    X: ones(nx).map((_) => 1.0),
-    K: zeros(nx),
-    psi: zeros(nx),
-    Pi_psi: zeros(nx),
-  };
-
-  // Interface: at rest, low entropy
+  // Interface: initially at equilibrium
   const iface: InterfaceState = {
-    s: 0,
-    theta: 0,
-    sigma: 0.1, // weak surface tension
-    eta: 0.05, // moderate viscosity
-    position: Math.floor(nx / 2),
+    s: 0, // no entropy
+    x_b_index,
+    tau: 0, // proper time starts at 0
   };
 
   return {
-    phys,
-    shadow,
+    bulk,
     interface: iface,
     nx,
     L,
     dx,
+    x_b,
     t: 0,
+    dt: 0.01, // initial time step (adaptive in Antclock)
   };
 }
 
+/**
+ * Initialize a cliff potential configuration.
+ *
+ * Scenario: Driven matter field with high kinetic energy, trying to overcome
+ * resistance at the interface. Expected behavior: High energy flux,
+ * rapid entropy production, clear coercion signature.
+ */
 export function initializeCliff(
   nx: number,
   L: number
 ): TwoManifoldState {
   const x = linspace(0, L, nx);
   const dx = L / (nx - 1);
+  const x_b = L / 2;
+  const x_b_index = Math.floor(nx / 2);
 
-  // Physical bulk: driven, trying to move against resistance
-  const phys: ADMState = {
-    X: ones(nx).map((_) => 1.0),
-    K: zeros(nx),
-    psi: x.map((xi) => 0.5 * Math.sin((xi / L) * Math.PI)), // non-zero initial
-    Pi_psi: x.map((_) => 0.2), // active driving (positive momentum)
+  // Matter field: sinusoidal with high kinetic energy (driving)
+  const psi = x.map((xi) => 0.5 * Math.sin((xi / L) * Math.PI));
+  const psi_dot = x.map((_) => 0.5); // high kinetic energy (active driving)
+
+  // Dilaton field: unit initially (will deform due to flux)
+  const X = new Array(nx).fill(1.0);
+  const X_dot = zeros(nx); // at rest initially
+
+  // Lapse: unit initially
+  const rho = zeros(nx);
+  const rho_dot = zeros(nx);
+
+  const bulk: DilatonGRState = {
+    rho,
+    rho_dot,
+    X,
+    X_dot,
+    psi,
+    psi_dot,
   };
 
-  // Shadow bulk: high potential, resistance
-  const shadow: ADMState = {
-    X: ones(nx).map((_) => 1.0),
-    K: zeros(nx),
-    psi: x.map((_) => 5.0), // high field
-    Pi_psi: x.map((_) => 2.0), // strong feedback
-  };
-
-  // Interface: already under stress
+  // Interface: under stress from driving
   const iface: InterfaceState = {
-    s: 0.1, // some accumulated work
-    theta: 0.5, // rapid expansion
-    sigma: 0.01, // very weak capacity
-    eta: 0.5, // high resistance
-    position: Math.floor(nx / 2),
+    s: 0.05, // initial entropy from interface resistance
+    x_b_index,
+    tau: 0,
   };
 
   return {
-    phys,
-    shadow,
+    bulk,
     interface: iface,
     nx,
     L,
     dx,
+    x_b,
     t: 0,
+    dt: 0.01,
   };
 }
 
@@ -705,17 +674,24 @@ export function spectralAcceleration(
 ): number[] {
   const accelerations: number[] = [];
 
+  // Compute spectral acceleration from dilaton field dynamics
+  // Acceleration ~ d²X/dt² at interface location
+  
   for (let i = windowSize; i < states.length; i++) {
-    // Acceleration: d^2(theta)/dt^2 ≈ (theta[i] - 2*theta[i-w] + theta[i-2w]) / (w*dt)^2
-    const s_now = states[i].interface.theta;
-    const s_mid = states[i - windowSize].interface.theta;
-    const s_prev = states[i - 2 * windowSize];
+    const current = states[i];
+    const mid = states[i - windowSize];
+    const prev = states[i - 2 * windowSize];
 
-    if (!s_prev) continue;
+    if (!prev) continue;
 
-    const s_prev_val = s_prev.interface.theta;
-    const dt_eff = windowSize * 0.01; // approximate dt
-    const accel = (s_now - 2 * s_mid + s_prev_val) / (dt_eff * dt_eff);
+    // X field acceleration at interface
+    const i_b = current.interface.x_b_index;
+    const X_now = current.bulk.X[i_b];
+    const X_mid = mid.bulk.X[i_b];
+    const X_prev = prev.bulk.X[i_b];
+
+    const dt_eff = windowSize * current.dt;
+    const accel = (X_now - 2 * X_mid + X_prev) / (dt_eff * dt_eff);
 
     accelerations.push(Math.abs(accel));
   }
