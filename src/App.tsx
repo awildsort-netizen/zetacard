@@ -213,7 +213,7 @@ function drawCardInfo(ctx:CanvasRenderingContext2D, rect:any, card:any, ambient?
   }
 }
 
-function getOverlap(a:any,b:any){
+function getOverlap(a:{x:number,y:number,w:number,h:number},b:{x:number,y:number,w:number,h:number}){
   const x = Math.max(a.x,b.x); const y = Math.max(a.y,b.y); const rx = Math.min(a.x+a.w, b.x+b.w); const ry = Math.min(a.y+a.h, b.y+b.h);
   if(rx>x && ry>y) return {x, y, w: rx-x, h: ry-y}; return null;
 }

@@ -1,22 +1,37 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { CardRegistry, listCards, type CardRegistryEntry, type CardQueryResult } from '../cardRegistry';
-import { Omnicard } from '../cards/omnicard';
+import { listCards, CardRegistryEntry, type CardQueryResult } from '../cardRegistry';
 import { eventLog } from '../instrumentation';
 
 interface OmniboxProps {
-  onInvoke?: (id:string, mode:'SafeRun'|'Run', card:CardQueryResult)=>void;
+  onInvoke?: (id: string, mode: 'SafeRun' | 'Run', card: CardQueryResult) => void;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  omnicard?: Omnicard;
 }
 
 /**
  * Omnibox: Semantic invocation interface.
  *
- * Rewritten to use CardRegistry directly.
+ * Uses CardRegistry directly.
  * Activates cards by semantic reference, not search.
  */
-export default function Omnibox({ onInvoke, open: externalOpen, onOpenChange, omnicard }: OmniboxProps) {
+
+/**
+ * Convert CardRegistryEntry to CardQueryResult format
+ */
+function toCardQueryResult(card: CardRegistryEntry): CardQueryResult {
+  return {
+    manifest: {
+      title: card.meta.title,
+      tagline: card.meta.description,
+      semanticDescriptor: card.docstring || '',
+      description: card.meta.description,
+      tags: card.meta.tags,
+    },
+    score: 1.0,
+  };
+}
+
+export default function Omnibox({ onInvoke, open: externalOpen, onOpenChange }: OmniboxProps) {
   const [localOpen, setLocalOpen] = useState(true);
   const open = externalOpen !== undefined ? externalOpen : localOpen;
   const setOpen = (value: boolean) => {
@@ -127,15 +142,13 @@ export default function Omnibox({ onInvoke, open: externalOpen, onOpenChange, om
 
     const flowId = eventLog.startFlow();
     eventLog.emit({ type: 'CARD_SELECTED', cardId: card.id, cardTitle: card.meta.title, flowId });
-    eventLog.emit({ type: 'CARD_ACTIVATED', cardId: card.id, mode, flowId });
+    eventLog.emit({ type: 'CARD_OPENED', cardId: card.id, mode, flowId });
 
-    // Update omnicard recents
-    if (omnicard) {
-      omnicard.addRecent(card.id);
-    }
+    // Convert CardRegistryEntry to CardQueryResult format expected by App
+    const cardQueryResult = toCardQueryResult(card);
 
     // Notify parent
-    onInvoke?.(card.id, mode, { manifest: card.meta } as CardQueryResult);
+    onInvoke?.(card.id, mode, cardQueryResult);
   };
 
   return (

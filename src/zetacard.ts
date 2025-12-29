@@ -1,5 +1,4 @@
 import {EPS} from "./math";
-import {EPS, cosine} from "./math";
 import {
   ZetaCardContract,
   CardID,
