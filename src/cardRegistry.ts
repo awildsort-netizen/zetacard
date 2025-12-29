@@ -188,3 +188,55 @@ export function validateReadmeAgainstRegistry(readmeContent: string): ReadmeDrif
 
   return issues;
 }
+
+/**
+ * Backwards compatibility: old queryCards function.
+ * Returns metadata about cards matching a query string.
+ * In the new system, queries should be semantic (via Omnicard.select()).
+ */
+export function queryCards(q: string, max = 10): { id: string; title: string }[] {
+  // Simple text search against card registry
+  const results: { id: string; title: string }[] = [];
+  const query = q.toLowerCase();
+
+  for (const card of listCards()) {
+    const titleMatch = card.meta.title.toLowerCase().includes(query);
+    const descMatch = card.meta.description?.toLowerCase().includes(query);
+    const tagsMatch = card.meta.tags?.some((t) => t.toLowerCase().includes(query));
+
+    if (titleMatch || descMatch || tagsMatch) {
+      results.push({
+        id: card.id,
+        title: card.meta.title,
+      });
+    }
+  }
+
+  return results.slice(0, max);
+}
+
+/**
+ * Backwards compatibility: old detectFacets function.
+ * Heuristically identify the "type" of a query string.
+ */
+export function detectFacets(input: string): string[] {
+  const facets: string[] = [];
+  if (/^https?:\/\//.test(input)) facets.push("url");
+  try {
+    JSON.parse(input);
+    facets.push("json");
+  } catch (e) {}
+  if (/\d{4}-\d{2}-\d{2}/.test(input)) facets.push("date");
+  if (/^[\d,\s]+$/.test(input)) facets.push("number-series");
+  return facets;
+}
+
+/**
+ * Backwards compatibility: old refreshRegistryFromRepo function.
+ * In the new system, the registry is static.
+ * This is a no-op; kept for API compatibility.
+ */
+export async function refreshRegistryFromRepo(): Promise<void> {
+  // No-op: registry is now static and loaded from CardRegistry object
+  return Promise.resolve();
+}
