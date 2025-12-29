@@ -14,6 +14,23 @@ interface OmniboxProps {
  * Uses CardRegistry directly.
  * Activates cards by semantic reference, not search.
  */
+
+/**
+ * Convert CardRegistryEntry to CardQueryResult format
+ */
+function toCardQueryResult(card: CardRegistryEntry): CardQueryResult {
+  return {
+    manifest: {
+      title: card.meta.title,
+      tagline: card.meta.description,
+      semanticDescriptor: card.docstring || '',
+      description: card.meta.description,
+      tags: card.meta.tags,
+    },
+    score: 1.0,
+  };
+}
+
 export default function Omnibox({ onInvoke, open: externalOpen, onOpenChange }: OmniboxProps) {
   const [localOpen, setLocalOpen] = useState(true);
   const open = externalOpen !== undefined ? externalOpen : localOpen;
@@ -128,16 +145,7 @@ export default function Omnibox({ onInvoke, open: externalOpen, onOpenChange }: 
     eventLog.emit({ type: 'CARD_OPENED', cardId: card.id, mode, flowId });
 
     // Convert CardRegistryEntry to CardQueryResult format expected by App
-    const cardQueryResult: CardQueryResult = {
-      manifest: {
-        title: card.meta.title,
-        tagline: card.meta.description,
-        semanticDescriptor: card.docstring || '',
-        description: card.meta.description,
-        tags: card.meta.tags,
-      },
-      score: 1.0,
-    };
+    const cardQueryResult = toCardQueryResult(card);
 
     // Notify parent
     onInvoke?.(card.id, mode, cardQueryResult);
