@@ -137,6 +137,18 @@ export default function App(){
     return ()=>{ c.removeEventListener('mousedown', onDown); c.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); c.removeEventListener('dblclick', dbl); };
   },[drag,rects]);
 
+  // Handle Escape key to close active card view
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && activeCard) {
+        setActiveCard(null);
+        setActiveCardData(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [activeCard]);
+
   return (<div>
     <Omnibox onInvoke={(id, mode, card) => {
       setActiveCard(id);

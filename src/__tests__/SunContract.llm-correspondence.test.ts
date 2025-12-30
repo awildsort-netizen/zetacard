@@ -184,6 +184,8 @@ describe("SunContract: LLM Correspondence", () => {
     contract.step();
     const dose2 = contract.getState().agentDose["overloaded"];
     expect(dose2).toBeLessThanOrEqual(agent.doseBudget + 0.1);
+  });
+
   /**
    * Test 5: Softmax + Mask Consistency
    *
